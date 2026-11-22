@@ -2,3 +2,5 @@ node_modules/
 .wrangler/
 .dev.vars
 .claude/settings.local.json
+.specify/**/.cache/
+.specify/.workflow-install.lock

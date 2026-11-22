@@ -30,6 +30,29 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 - Скрипты git-расширения (`.specify/extensions/git/scripts/powershell/`) читают файлы с `-Encoding UTF8`: Windows
   PowerShell 5.1 без этого портит русские сообщения коммитов. При обновлении Spec Kit сохрани эту правку.
 
+### Состав Spec Kit (CLI и проект — 1.4.3, всё из официального каталога)
+
+| Что | Команды | Когда |
+|---|---|---|
+| Ядро | `/speckit-constitution`, `-specify`, `-clarify`, `-plan`, `-tasks`, `-implement`, `-analyze`, `-checklist`, `-converge` | Каждая фича |
+| `git` 1.0.8 | `/speckit-git-feature`, `-git-commit`, `-git-initialize`, `-git-validate`, `-git-remote` | Сами, через хуки |
+| `agent-context` 1.0.3 | `/speckit-agent-context-update` | Сам после specify и plan, до коммита: обновляет блок `SPECKIT` в конце этого файла (ссылка на текущий план) |
+| `assess` 1.0.2 + процесс `assess` | `/speckit-assess-intake` → `-research` → `-define` → `-shape` → `-decide` | Новая идея, о которой не ясно, делать ли: итог «делаем» — в `/speckit-specify`, «нет» — закрыть. Папка `.specify/assessments/<slug>/` |
+| `bug` 1.0.2 + процесс `bugfix` | `/speckit-bug-assess` → `-bug-fix` → `-bug-test` | Ошибка в уже сделанном: разбор, исправление, проверка тестом. Папка `.specify/bugs/<slug>/` |
+| Процессы | `specify workflow list` — `speckit` (полный цикл), `assess`, `bugfix` | Те же шаги по порядку с остановками на проверку |
+
+- Не поставлено: `github` (задачи в GitHub Issues) — у проекта нет репозитория на GitHub. Расширения сообщества в
+  каталоге только для просмотра, без проверки их не ставим.
+- `agent-context` нужен Python с PyYAML: в `.claude/settings.local.json` задан `SPECKIT_PYTHON` — Python самого Spec Kit
+  (`%APPDATA%\uv\tools\specify-cli\Scripts\python.exe`).
+- Обновление: CLI — `uv tool install specify-cli --force --from git+https://github.com/github/spec-kit.git@vX.Y.Z`
+  (`specify self upgrade` на Windows ломает установку: не может заменить сам себя); проект — `specify integration
+  upgrade --force`; расширения — `specify extension update` (подтверждение `y` подавать из Git Bash:
+  `printf 'y\n' | …`). Обновление расширения сбрасывает хуки в `.specify/extensions.yml` — после него верни настройки
+  выше: `before_*` выключены, у `after_*` `optional: false`, `agent-context` — `priority: 5` и в списке раньше `git`.
+  Затем `specify integration status` — должен быть OK.
+- `.ps1` хранятся с LF (`.gitattributes`): Spec Kit сверяет свои файлы по контрольным суммам версии с LF.
+
 ## Интерфейс: только дизайн-система (правило владельца, 2026-11-22)
 
 - При создании любого интерфейса в этом проекте (мини-приложение, страницы, витрины) всегда используй дизайн-систему
@@ -53,3 +76,8 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 | Ветка | Спецификация | Статус |
 |---|---|---|
 | `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | спецификация готова, дальше `/speckit-plan` |
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

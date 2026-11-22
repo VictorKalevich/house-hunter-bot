@@ -8,6 +8,22 @@
       "source": "bundled",
       "installed_at": "2026-11-11T19:39:54.698207+00:00",
       "updated_at": "2026-11-11T19:39:54.698216+00:00"
+    },
+    "assess": {
+      "name": "Idea Assessment Pipeline",
+      "version": "1.0.0",
+      "description": "Runs intake \u2192 research \u2192 define \u2192 shape \u2192 decide with a verdict review gate before a manual /speckit.specify handoff",
+      "source": "C:\\Users\\victo\\AppData\\Roaming\\uv\\tools\\specify-cli\\Lib\\site-packages\\specify_cli\\core_pack\\workflows\\assess\\workflow.yml",
+      "installed_at": "2026-11-22T12:04:54.125508+00:00",
+      "updated_at": "2026-11-22T12:04:54.125514+00:00"
+    },
+    "bugfix": {
+      "name": "Guided Bug Fix",
+      "version": "1.0.1",
+      "description": "Runs bug assess \u2192 human review gate \u2192 bug fix \u2192 bug test on a bug report",
+      "source": "C:\\Users\\victo\\AppData\\Roaming\\uv\\tools\\specify-cli\\Lib\\site-packages\\specify_cli\\core_pack\\workflows\\bugfix\\workflow.yml",
+      "installed_at": "2026-11-22T12:04:55.254526+00:00",
+      "updated_at": "2026-11-22T12:04:55.254532+00:00"
     }
   }
 }

@@ -1,4 +1,7 @@
 installed:
+- agent-context
+- assess
+- bug
 - git
 settings:
   auto_execute_hooks: true
@@ -94,6 +97,14 @@ hooks:
     description: Auto-commit after constitution update
     condition: null
   after_specify:
+  - extension: agent-context
+    command: speckit.agent-context.update
+    enabled: true
+    optional: false
+    priority: 5
+    prompt: Execute speckit.agent-context.update?
+    description: Refresh agent context after specification
+    condition: null
   - extension: git
     command: speckit.git.commit
     enabled: true
@@ -112,6 +123,14 @@ hooks:
     description: Auto-commit after spec clarification
     condition: null
   after_plan:
+  - extension: agent-context
+    command: speckit.agent-context.update
+    enabled: true
+    optional: false
+    priority: 5
+    prompt: Execute speckit.agent-context.update?
+    description: Refresh agent context after planning
+    condition: null
   - extension: git
     command: speckit.git.commit
     enabled: true
