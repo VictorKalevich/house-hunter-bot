@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Дизайн-система House Hunter</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <style>
+    /* Только для витрины: раскладка колонок и имитация темы Telegram (--tg-theme-*). Компоненты здесь не стилизуются. */
+    body.pv-body { margin: 0; padding: 16px; background: #d9dce1; font-family: var(--ds-font-family); }
+    .pv-columns { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; align-items: flex-start; }
+    .pv-column { width: 390px; max-width: 100%; border-radius: 20px; overflow: hidden; }
+    .pv-column > h2 { margin: 0; padding: 10px 16px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .pv-light {
+      --tg-color-scheme: light;
+      --tg-theme-bg-color: #ffffff; --tg-theme-secondary-bg-color: #efeff4; --tg-theme-section-bg-color: #ffffff;
+      --tg-theme-text-color: #000000; --tg-theme-hint-color: #8e8e93; --tg-theme-link-color: #2481cc;
+      --tg-theme-button-color: #2481cc; --tg-theme-button-text-color: #ffffff;
+      --tg-theme-section-header-text-color: #6d6d72; --tg-theme-section-separator-color: #c8c7cc;
+      --tg-theme-destructive-text-color: #ff3b30;
+    }
+    .pv-dark {
+      --tg-color-scheme: dark;
+      --tg-theme-bg-color: #212d3b; --tg-theme-secondary-bg-color: #151e27; --tg-theme-section-bg-color: #1d2733;
+      --tg-theme-text-color: #ffffff; --tg-theme-hint-color: #7d8b99; --tg-theme-link-color: #5eabe1;
+      --tg-theme-button-color: #50a8eb; --tg-theme-button-text-color: #ffffff;
+      --tg-theme-section-header-text-color: #79a5d0; --tg-theme-section-separator-color: #0d1218;
+      --tg-theme-destructive-text-color: #ee686f;
+    }
+    .pv-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+    .pv-swatch { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ds-color-text-muted); }
+    .pv-swatch > span:first-child { height: 36px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.25); }
+    .pv-toast-box { position: relative; height: 64px; transform: translateZ(0); }
+  </style>
+</head>
+<body class="pv-body">
+  <div class="pv-columns">
+    <section class="pv-column ds-root ds-theme pv-light" data-pv-slot="light"><h2>Светлая тема Telegram</h2></section>
+    <section class="pv-column ds-root ds-theme pv-dark" data-pv-slot="dark"><h2>Тёмная тема Telegram</h2></section>
+  </div>
+
+  <template id="pv-showcase">
+    <main class="ds-page ds-stack ds-stack--loose">
+
+      <header class="ds-hero">
+        <h1 class="ds-hero__title">🏡 Дом рядом</h1>
+        <p class="ds-hero__text">Новые дома с участками с kufar.by, realt.by, domovita.by и moyareklama.by</p>
+      </header>
+
+      <!-- Токены: цвета -->
+      <div class="ds-stack">
+        <h2 class="ds-section-title">Цвета</h2>
+        <div class="ds-card pv-swatches">
+          <div class="pv-swatch"><span style="background: var(--ds-color-bg)"></span><span>bg</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-surface)"></span><span>surface</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-text)"></span><span>text</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-text-muted)"></span><span>text-muted</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-accent)"></span><span>accent</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-link)"></span><span>link</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-danger)"></span><span>danger</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-gradient-brand)"></span><span>brand</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-success)"></span><span>success</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-warning)"></span><span>warning</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-fill)"></span><span>fill</span></div>
+          <div class="pv-swatch"><span style="background: var(--ds-color-separator)"></span><span>separator</span></div>
+        </div>
+      </div>
+
+      <!-- Текст -->
+      <div class="ds-stack">
+        <h2 class="ds-section-title">Текст</h2>
+        <div class="ds-card ds-stack ds-stack--tight">
+          <p class="ds-title">Заголовок экрана</p>
+          <p>Обычный текст. <span class="ds-text-strong">Выделенный текст.</span> <a href="#">Ссылка</a></p>
+          <p class="ds-text-muted">Второстепенный текст</p>
+          <p class="ds-text-sm">Мелкий текст</p>
+          <p class="ds-hint">Подсказка под элементом</p>
+          <p>Цена: <span class="ds-num">75 000 $</span></p>
+          <p class="ds-divided ds-text-muted">Блок с разделителем сверху</p>
+        </div>
+      </div>
+
+      <!-- Кнопки -->
+      <div class="ds-stack">
+        <h2 class="ds-section-title">Кнопки</h2>
+        <div class="ds-card ds-stack">
+          <button class="ds-btn ds-btn--block" type="button">Сохранить поиск</button>
+          <div class="ds-row ds-row--wrap">
+            <button class="ds-btn ds-btn--secondary" type="button">Изменить</button>
+            <button class="ds-btn ds-btn--danger" type="button">Удалить</button>
+            <button class="ds-btn" type="button" disabled>Недоступна</button>
+          </div>
+          <div class="ds-row ds-row--wrap">
+            <button class="ds-btn ds-btn--sm" type="button">Маленькая</button>
+            <button class="ds-btn ds-btn--sm ds-btn--secondary" type="button">Открыть объявление</button>
+            <button class="ds-icon-btn" type="button" aria-label="Обновить">↻</button>
+            <button class="ds-icon-btn" type="button" aria-label="Закрыть">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Поиск: поля, подсказки, варианты, переключатели -->
+      <div class="ds-stack">
+        <h2 class="ds-section-title">Условия поиска</h2>
+        <div class="ds-card ds-stack">
+          <label class="ds-field">
+            <span class="ds-field__label">Название поиска</span>
+            <input class="ds-input" type="text" value="Под Гомелем">
+          </label>
+          <div class="ds-field">
+            <label class="ds-field__label" for="pv-place">Населённый пункт</label>
+            <input class="ds-input" id="pv-place" type="text" value="Ченк" autocomplete="off">
+            <div class="ds-suggest" role="listbox">
+              <button class="ds-suggest__item ds-suggest__item--active" type="button" role="option">
+                <span class="ds-suggest__name">Ченки</span>
+                <span class="ds-suggest__meta">агрогородок, Гомельский р-н, Гомельская обл.</span>
+              </button>
+              <button class="ds-suggest__item" type="button" role="option">
+                <span class="ds-suggest__name">Ченки</span>
+                <span class="ds-suggest__meta">деревня, Буда-Кошелёвский р-н, Гомельская обл.</span>
+              </button>
+            </div>
+            <span class="ds-field__hint">Начните вводить название и выберите из списка</span>
+          </div>
+          <div class="ds-field">
+            <span class="ds-field__label">Не дальше чем</span>
+            <div class="ds-affix">
+              <input class="ds-input" type="text" inputmode="numeric" value="30" aria-label="Расстояние">
+              <span class="ds-affix__unit">км</span>
+            </div>
+          </div>
+          <div class="ds-field">
+            <span class="ds-field__label">Цена</span>
+            <div class="ds-range">
+              <div class="ds-affix"><input class="ds-input" type="text" inputmode="numeric" placeholder="от" aria-label="Цена от"><span class="ds-affix__unit">$</span></div>
+              <span class="ds-range__sep">—</span>
+              <div class="ds-affix"><input class="ds-input" type="text" inputmode="numeric" value="80 000" aria-label="Цена до"><span class="ds-affix__unit">$</span></div>
+            </div>
+          </div>
+          <div class="ds-field">
+            <span class="ds-field__label">Площадь дома</span>
+            <div class="ds-range">
+              <div class="ds-affix"><input class="ds-input" type="text" inputmode="numeric" value="80" aria-label="Площадь дома от"><span class="ds-affix__unit">м²</span></div>
+              <span class="ds-range__sep">—</span>
+              <div class="ds-affix"><input class="ds-input" type="text" inputmode="numeric" placeholder="до" aria-label="Площадь дома до"><span class="ds-affix__unit">м²</span></div>
+            </div>
+          </div>
+          <div class="ds-field">
+            <span class="ds-field__label">Площадь участка</span>
+            <div class="ds-range">
+              <div class="ds-affix ds-affix--error"><input class="ds-input" type="text" inputmode="numeric" value="40" aria-label="Площадь участка от" aria-invalid="true"><span class="ds-affix__unit">сот.</span></div>
+              <span class="ds-range__sep">—</span>
+              <div class="ds-affix"><input class="ds-input" type="text" inputmode="numeric" value="25" aria-label="Площадь участка до"><span class="ds-affix__unit">сот.</span></div>
+            </div>
+            <span class="ds-field__hint">«От» больше, чем «до» — поправьте диапазон</span>
+          </div>
+          <input class="ds-input ds-input--error" type="text" value="Поле с ошибкой" aria-invalid="true" aria-label="Пример поля с ошибкой">
+          <input class="ds-input" type="text" value="Недоступное поле" disabled aria-label="Пример недоступного поля">
+        </div>
+
+        <h2 class="ds-section-title">Как считать расстояние</h2>
+        <div class="ds-options" role="radiogroup">
+          <label class="ds-option">
+            <input class="ds-option__input" type="radio" name="pv-distance" checked>
+            <span class="ds-option__body">
+              <span class="ds-option__title">По прямой</span>
+              <span class="ds-option__hint">От центра населённого пункта до дома</span>
+            </span>
+          </label>
+          <label class="ds-option">
+            <input class="ds-option__input" type="radio" name="pv-distance">
+            <span class="ds-option__body">
+              <span class="ds-option__title">По дороге от центра</span>
+              <span class="ds-option__hint">Длина пути на машине от центра</span>
+            </span>
+          </label>
+          <label class="ds-option">
+            <input class="ds-option__input" type="radio" name="pv-distance">
+            <span class="ds-option__body">
+              <span class="ds-option__title">По дороге от выезда</span>
+              <span class="ds-option__hint">Путь на машине за границей населённого пункта</span>
+            </span>
+          </label>
+        </div>
+
+        <h2 class="ds-section-title">Сайты</h2>
+        <div class="ds-list">
+          <label class="ds-list-item"><span class="ds-grow">kufar.by</span><span class="ds-switch"><input class="ds-switch__input" type="checkbox" checked><span class="ds-switch__track"></span></span></label>
+          <label class="ds-list-item"><span class="ds-grow">realt.by</span><span class="ds-switch"><input class="ds-switch__input" type="checkbox" checked><span class="ds-switch__track"></span></span></label>
+          <label class="ds-list-item"><span class="ds-grow">domovita.by</span><span class="ds-switch"><input class="ds-switch__input" type="checkbox"><span class="ds-switch__track"></span></span></label>
+          <label class="ds-list-item"><span class="ds-grow">moyareklama.by</span><span class="ds-switch"><input class="ds-switch__input" type="checkbox" checked disabled><span class="ds-switch__track"></span></span></label>
+        </div>
+      </div>
+
+      <!-- Мои поиски: список и метки -->
+      <div class="ds-stack">
+        <h2 class="ds-section-title">Мои поиски</h2>
+        <div class="ds-list">
+          <button class="ds-list-item ds-list-item--link" type="button">
+            <span class="ds-list-item__body">
+              <span class="ds-list-item__title">Под Гомелем</span>
+              <span class="ds-list-item__meta">до 30 км по прямой · до 80 000 $ · дом от 80 м²</span>
+            </span>
+            <span class="ds-chip ds-chip--success">Активен</span>
+          </button>
+          <button class="ds-list-item ds-list-item--link" type="button">
+            <span class="ds-list-item__body">
+              <span class="ds-list-item__title">Дача у реки</span>
+              <span class="ds-list-item__meta">до 50 км от выезда · участок от 15 сот.</span>
+            </span>
+            <span class="ds-chip ds-chip--warning">Пауза</span>
+          </button>
+        </div>
+        <div class="ds-chips">
+          <span class="ds-chip">kufar.by</span>
+          <span class="ds-chip ds-chip--brand">Новое</span>
+          <span class="ds-chip ds-chip--success">Активен</span>
+          <span class="ds-chip ds-chip--warning">Пауза</span>
+        </div>
+      </div>
+
+      <!-- Объявления -->
+      <div class="ds-stack">
+        <h2 class="ds-section-title">Объявления</h2>
+        <article class="ds-listing">
+          <div class="ds-listing__photo ds-listing__photo--empty" role="img" aria-label="Фото дома">🏡</div>
+          <div class="ds-listing__body">
+            <div class="ds-listing__top">
+              <div>
+                <div class="ds-listing__price">75 000 $</div>
+                <div class="ds-listing__price-alt">≈ 245 000 BYN</div>
+              </div>
+              <div class="ds-chips"><span class="ds-chip ds-chip--brand">Новое</span></div>
+            </div>
+            <div class="ds-listing__facts">
+              <span class="ds-fact"><span class="ds-fact__label">Дом</span><span class="ds-fact__value">100 м²</span></span>
+              <span class="ds-fact"><span class="ds-fact__label">Участок</span><span class="ds-fact__value">15 сот.</span></span>
+              <span class="ds-fact"><span class="ds-fact__label">По прямой</span><span class="ds-fact__value">25 км</span></span>
+            </div>
+            <div class="ds-listing__place">аг. Ченки, Гомельский р-н</div>
+            <div class="ds-listing__meta"><span>kufar.by</span><span>2 ч назад</span></div>
+            <a class="ds-btn ds-btn--sm ds-btn--secondary" href="#">Открыть на сайте</a>
+          </div>
+        </article>
+        <article class="ds-listing">
+          <div class="ds-listing__photo ds-listing__photo--empty" role="img" aria-label="Фото нет">🏚️</div>
+          <div class="ds-listing__body">
+            <div class="ds-listing__top">
+              <div class="ds-listing__price">Договорная</div>
+            </div>
+            <div class="ds-listing__facts">
+              <span class="ds-fact"><span class="ds-fact__label">Дом</span><span class="ds-fact__value ds-fact__value--unknown">не указано</span></span>
+              <span class="ds-fact"><span class="ds-fact__label">Участок</span><span class="ds-fact__value">25 сот.</span></span>
+              <span class="ds-fact"><span class="ds-fact__label">≈ от выезда</span><span class="ds-fact__value">41 км</span></span>
+            </div>
+            <div class="ds-listing__place">д. Старая Белица, Гомельский р-н</div>
+            <div class="ds-listing__meta"><span>moyareklama.by</span><span>вчера</span></div>
+          </div>
+        </article>
+        <div class="ds-pager">
+          <button class="ds-btn ds-btn--sm ds-btn--secondary" type="button" disabled>‹ Назад</button>
+          <span class="ds-pager__info">1–5 из 37</span>
+          <button class="ds-btn ds-btn--sm ds-btn--secondary" type="button">Дальше ›</button>
+        </div>
+      </div>
+
+      <!-- Состояния -->
+      <div class="ds-stack">
+        <h2 class="ds-section-title">Состояния</h2>
+        <div class="ds-card ds-card--flush">
+          <div class="ds-empty">
+            <div class="ds-empty__icon">🔍</div>
+            <p class="ds-empty__title">Пока ничего не подходит</p>
+            <p class="ds-empty__text">Попробуйте увеличить расстояние или цену — новые объявления придут сообщением.</p>
+            <button class="ds-btn ds-btn--sm ds-btn--secondary" type="button">Изменить условия</button>
+          </div>
+        </div>
+        <div class="ds-card ds-row">
+          <div class="ds-spinner" role="status" aria-label="Загрузка"></div>
+          <span class="ds-text-muted">Загружаем объявления…</span>
+        </div>
+        <div class="pv-toast-box">
+          <div class="ds-toast" role="status">Поиск сохранён</div>
+        </div>
+      </div>
+
+    </main>
+  </template>
+
+  <script>
+    // Одна витрина — в обе колонки; у радиокнопок своя группа в каждой колонке.
+    const tpl = document.getElementById('pv-showcase');
+    for (const slot of document.querySelectorAll('[data-pv-slot]')) {
+      const copy = tpl.content.cloneNode(true);
+      for (const el of copy.querySelectorAll('[name]')) el.name += '-' + slot.dataset.pvSlot;
+      for (const el of copy.querySelectorAll('[id]')) el.id += '-' + slot.dataset.pvSlot;
+      for (const el of copy.querySelectorAll('[for]')) el.htmlFor += '-' + slot.dataset.pvSlot;
+      slot.append(copy);
+    }
+  </script>
+</body>
+</html>
