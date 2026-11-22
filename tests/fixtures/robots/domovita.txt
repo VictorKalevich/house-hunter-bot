@@ -1,0 +1,13 @@
+User-agent: *
+Allow: *?page
+Disallow: *?*
+Disallow: /iframe/*
+Disallow: /fonts/*
+Disallow: /base/fonts/*
+Disallow: /assets/*
+Disallow: /adfox*
+Disallow: /helper*
+Disallow: /go/*
+
+Sitemap: https://domovita.by/sitemap.xml
+Sitemap: https://domovita.by/sitemap-google-news.xml

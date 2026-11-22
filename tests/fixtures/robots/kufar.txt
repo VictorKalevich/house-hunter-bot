@@ -1,0 +1,46 @@
+User-agent: Yandex
+
+Allow: /kupit/
+Allow: /kvartiru-na-sutki/
+Disallow: */kupit/kvartiru-na-sutki*
+Disallow: *cur=*
+Disallow: *gbx=*
+Disallow: *dlr=*
+Disallow: *address=*
+Disallow: *prn=*
+Disallow: *sort=*
+Disallow: *rnt=*
+Disallow: *center=*
+Disallow: *last=*
+Disallow: *first=*
+Disallow: *cursor=*
+Disallow: *mindbox*
+Disallow: *rms=*
+Disallow: *rgn=*
+Disallow: *?*
+Disallow: *rank*
+Disallow: *searchId*
+Disallow: *elementType*
+
+User-agent: *
+
+Disallow: *cur=*
+Disallow: *gbx=*
+Disallow: *dlr=*
+Disallow: *address=*
+Disallow: *prn=*
+Disallow: *sort=*
+Disallow: *center=*
+Disallow: *last=*
+Disallow: *first=*
+Disallow: *cursor=*
+Disallow: *mindbox*
+Disallow: *?*
+Disallow: *rank*
+Disallow: *searchId*
+Disallow: *elementType*
+
+Clean-param: utm_source&utm_medium&utm_campaign
+Clean-param: pls_source&pls_medium&pls_campaign
+
+Sitemap: https://re.kufar.by/sitemap.xml

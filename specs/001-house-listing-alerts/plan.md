@@ -160,13 +160,13 @@ src/
 │   └── app-page.js             # /app: HTML + подстановка дизайн-системы
 └── app/
     ├── index.html              # мини-приложение: только ds-*
-    └── app.js
+    └── app.js.txt              # скрипт; .txt — чтобы Wrangler подключил его текстом (research.md R8), отдаётся как /app/app.js
 tests/
 ├── design-system.test.mjs      # уже есть; проверяет src/app/
 ├── fixtures/{kufar,realt,domovita,moyareklama}/   # сохранённые страницы
 ├── sources/*.test.mjs          # адаптеры
 ├── unit/*.test.mjs             # критерии, расстояния, нормализация, robots, initData, тексты
-└── e2e/*.e2e.mjs               # Miniflare: полный цикл (npm run test:e2e)
+└── e2e/                        # Miniflare: полный цикл (npm run test:e2e); harness.mjs — стенд
 README.md                       # установка, секреты, команды, атрибуция OSM/ORS
 ```
 

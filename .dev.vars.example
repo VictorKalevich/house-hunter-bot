@@ -1,0 +1,5 @@
+# Скопируйте в .dev.vars (он в .gitignore) и заполните. В Cloudflare — `npx wrangler secret put <ИМЯ>`.
+BOT_TOKEN=
+WEBHOOK_SECRET=
+OWNER_TELEGRAM_ID=
+ORS_API_KEY=

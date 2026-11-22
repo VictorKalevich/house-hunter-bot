@@ -1,0 +1,540 @@
+// Мини-приложение «Дом рядом»: contracts/miniapp-api.md «Экраны». Только классы ds-*, текст — через textContent.
+(() => {
+  'use strict';
+
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const screen = document.getElementById('screen');
+
+  const SOURCES = [
+    ['kufar', 'kufar.by'],
+    ['realt', 'realt.by'],
+    ['domovita', 'domovita.by'],
+    ['moyareklama', 'moyareklama.by'],
+  ];
+  const SOURCE_TITLE = Object.fromEntries(SOURCES);
+  const MODES = [
+    ['straight', 'По прямой от центра', 'Расстояние по прямой от центра населённого пункта до дома'],
+    ['road_center', 'По дороге от центра', 'Длина самого быстрого пути на машине от центра'],
+    ['road_exit', 'По дороге от выезда', 'Путь на машине без пути по самому населённому пункту'],
+  ];
+  const MODE_SHORT = { straight: 'по прямой', road_center: 'по дороге от центра', road_exit: 'по дороге от выезда' };
+  const PAGE_SIZE = 5;
+  const KIND_TITLE = { city: 'город', town: 'город, посёлок', village: 'деревня, агрогородок', hamlet: 'деревня', isolated_dwelling: 'хутор' };
+
+  let backTarget = null;
+
+  // ---------- Элементы ----------
+
+  function h(tag, props, ...children) {
+    const el = document.createElement(tag);
+    if (props) {
+      for (const [key, value] of Object.entries(props)) {
+        if (value === null || value === undefined || value === false) continue;
+        if (key === 'class') el.className = value;
+        else if (key === 'text') el.textContent = value;
+        else if (key.startsWith('on')) el.addEventListener(key.slice(2), value);
+        else if (typeof value === 'boolean') el[key] = value;
+        else el.setAttribute(key, String(value));
+      }
+    }
+    for (const child of children.flat()) {
+      if (child === null || child === undefined || child === false) continue;
+      el.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    }
+    return el;
+  }
+
+  function show(...nodes) {
+    screen.replaceChildren(...nodes);
+    window.scrollTo(0, 0);
+  }
+
+  function spinner(text) {
+    return h('div', { class: 'ds-card ds-row' },
+      h('div', { class: 'ds-spinner', role: 'status', 'aria-label': 'Загрузка' }),
+      h('span', { class: 'ds-text-muted', text }));
+  }
+
+  function empty(icon, title, text, action) {
+    return h('div', { class: 'ds-card ds-card--flush' },
+      h('div', { class: 'ds-empty' },
+        h('div', { class: 'ds-empty__icon', text: icon }),
+        h('p', { class: 'ds-empty__title', text: title }),
+        text ? h('p', { class: 'ds-empty__text', text }) : null,
+        action || null));
+  }
+
+  function toast(text) {
+    const el = h('div', { class: 'ds-toast', role: 'status', text });
+    document.body.append(el);
+    setTimeout(() => el.remove(), 2500);
+  }
+
+  function formatNum(n) {
+    return Math.round(n).toLocaleString('ru-RU').replace(/ /g, ' ');
+  }
+
+  function rangeText(range, unit, label) {
+    if (!range || (range.min === null && range.max === null)) return null;
+    if (range.min !== null && range.max !== null) return `${label} ${formatNum(range.min)}–${formatNum(range.max)} ${unit}`;
+    if (range.min !== null) return `${label} от ${formatNum(range.min)} ${unit}`;
+    return `${label} до ${formatNum(range.max)} ${unit}`;
+  }
+
+  function criteriaSummary(c) {
+    return [
+      c.maxKm !== null ? `до ${formatNum(c.maxKm)} км ${MODE_SHORT[c.distanceMode]}` : null,
+      rangeText(c.priceUsd, '$', 'цена'),
+      rangeText(c.houseM2, 'м²', 'дом'),
+      rangeText(c.plotSotki, 'сот.', 'участок'),
+    ].filter(Boolean).join(' · ') || 'без условий';
+  }
+
+  function relativeTime(iso) {
+    if (!iso) return '';
+    const t = Date.parse(iso);
+    const min = Math.round((Date.now() - t) / 60000);
+    if (min < 1) return 'только что';
+    if (min < 60) return `${min} мин назад`;
+    if (min < 24 * 60) return `${Math.round(min / 60)} ч назад`;
+    if (min < 48 * 60) return 'вчера';
+    return new Date(t).toLocaleDateString('ru-RU');
+  }
+
+  // ---------- API ----------
+
+  async function api(method, path, body) {
+    const headers = { Authorization: `tma ${tg ? tg.initData : ''}` };
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    const res = await fetch(`/api${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+    if (res.status === 204) return null;
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const err = new Error((data && data.error && data.error.message) || `Ошибка ${res.status}`);
+      err.status = res.status;
+      err.fields = (data && data.error && data.error.fields) || {};
+      throw err;
+    }
+    return data;
+  }
+
+  function showError(err) {
+    if (err.status === 401) {
+      show(empty('🔒', 'Откройте приложение из чата с ботом', 'Без Telegram приложение не знает, кто вы.'));
+    } else if (err.status === 403) {
+      show(empty('🔒', 'Нет доступа', 'Этот бот работает только по приглашению. Попросите ссылку у владельца.'));
+    } else if (err.status === 404) {
+      show(empty('🔍', 'Поиск не найден', 'Возможно, он удалён.', h('button', {
+        class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'К моим поискам', onclick: () => go('#/'),
+      })));
+    } else {
+      show(empty('⚠️', 'Не получилось загрузить', err.message, h('button', {
+        class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Повторить', onclick: render,
+      })));
+    }
+  }
+
+  // ---------- Навигация ----------
+
+  function parseHash() {
+    const raw = location.hash.replace(/^#/, '') || '/';
+    const cut = raw.indexOf('?');
+    const path = (cut >= 0 ? raw.slice(0, cut) : raw) || '/';
+    const params = new URLSearchParams(cut >= 0 ? raw.slice(cut + 1) : '');
+    for (const key of [...params.keys()]) if (key.startsWith('tgWebApp')) params.delete(key);
+    return { path, params };
+  }
+
+  function go(hash) {
+    if (location.hash === hash) render();
+    else location.hash = hash;
+  }
+
+  function setBack(target) {
+    backTarget = target;
+    if (!tg) return;
+    if (target) tg.BackButton.show();
+    else tg.BackButton.hide();
+  }
+
+  async function render() {
+    const { path, params } = parseHash();
+    let m;
+    try {
+      if (path === '/search/new') return await showForm(null);
+      if ((m = /^\/search\/(\d+)$/.exec(path))) return await showForm(Number(m[1]));
+      if ((m = /^\/search\/(\d+)\/listings$/.exec(path))) {
+        return await showListings(Number(m[1]), Math.max(1, Number(params.get('page')) || 1));
+      }
+      return await showSearches();
+    } catch (err) {
+      showError(err);
+    }
+  }
+
+  // ---------- Мои поиски ----------
+
+  async function showSearches() {
+    setBack(null);
+    show(spinner('Загружаем поиски…'));
+    const data = await api('GET', '/searches');
+    const hero = h('header', { class: 'ds-hero' },
+      h('h1', { class: 'ds-hero__title', text: '🏡 Дом рядом' }),
+      h('p', { class: 'ds-hero__text', text: 'Новые дома с участками с kufar.by, realt.by, domovita.by и moyareklama.by' }));
+    const newButton = h('button', { class: 'ds-btn ds-btn--block', type: 'button', text: 'Новый поиск', onclick: () => go('#/search/new') });
+
+    if (data.items.length === 0) {
+      show(hero, empty('🔍', 'Поисков пока нет', 'Создайте поиск — и бот напишет, как только появится подходящий дом.'), newButton);
+      return;
+    }
+    const list = h('div', { class: 'ds-list' }, data.items.map((s) => h('button', {
+      class: 'ds-list-item ds-list-item--link', type: 'button', onclick: () => go(`#/search/${s.id}`),
+    },
+    h('span', { class: 'ds-list-item__body' },
+      h('span', { class: 'ds-list-item__title', text: s.title }),
+      h('span', { class: 'ds-list-item__meta', text: criteriaSummary(s.criteria) })),
+    s.status === 'active'
+      ? h('span', { class: 'ds-chip ds-chip--success', text: 'Активен' })
+      : h('span', { class: 'ds-chip ds-chip--warning', text: 'Пауза' }))));
+    show(hero, h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Мои поиски' }), list), newButton);
+  }
+
+  // ---------- Новый поиск / изменить поиск ----------
+
+  function numberInput(label, value, unit) {
+    const input = h('input', {
+      class: 'ds-input', type: 'text', inputmode: 'decimal', 'aria-label': label,
+      value: value === null || value === undefined ? '' : String(value),
+    });
+    const wrap = h('div', { class: 'ds-affix' }, input, h('span', { class: 'ds-affix__unit', text: unit }));
+    return { input, wrap };
+  }
+
+  function parseNumber(text) {
+    const s = text.replace(/\s/g, '').replace(',', '.');
+    if (s === '') return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function rangeField(label, range, unit) {
+    const min = numberInput(`${label} от`, range && range.min, unit);
+    const max = numberInput(`${label} до`, range && range.max, unit);
+    min.input.placeholder = 'от';
+    max.input.placeholder = 'до';
+    const hint = h('span', { class: 'ds-field__hint' });
+    const field = h('div', { class: 'ds-field' },
+      h('span', { class: 'ds-field__label', text: label }),
+      h('div', { class: 'ds-range' }, min.wrap, h('span', { class: 'ds-range__sep', text: '—' }), max.wrap),
+      hint);
+    return {
+      field,
+      value: () => ({ min: parseNumber(min.input.value), max: parseNumber(max.input.value) }),
+      setError(message) {
+        for (const part of [min, max]) {
+          part.wrap.className = message ? 'ds-affix ds-affix--error' : 'ds-affix';
+          if (message) part.input.setAttribute('aria-invalid', 'true');
+          else part.input.removeAttribute('aria-invalid');
+        }
+        hint.textContent = message || '';
+      },
+    };
+  }
+
+  async function showForm(id) {
+    setBack(id ? '#/' : '#/');
+    show(spinner('Загружаем…'));
+    const search = id ? await api('GET', `/searches/${id}`) : null;
+    const c = search ? search.criteria : {
+      settlementId: null, distanceMode: 'straight', maxKm: null,
+      priceUsd: { min: null, max: null }, houseM2: { min: null, max: null }, plotSotki: { min: null, max: null },
+      sources: SOURCES.map(([key]) => key),
+    };
+    let settlement = search ? search.settlement : null;
+
+    // Населённый пункт с подсказками
+    const placeInput = h('input', {
+      class: 'ds-input', id: 'place', type: 'text', autocomplete: 'off', placeholder: 'Например, Боровляны',
+      value: settlement ? settlement.name : '',
+    });
+    const suggest = h('div', { class: 'ds-suggest', role: 'listbox' });
+    const placeHint = h('span', { class: 'ds-field__hint' });
+    const describe = (s) => [KIND_TITLE[s.kind], s.district, s.region].filter(Boolean).join(', ');
+    const setPlaceHint = () => {
+      placeHint.textContent = settlement ? `Выбрано: ${settlement.name}, ${describe(settlement)}` : 'Начните вводить название и выберите из списка';
+    };
+    setPlaceHint();
+    let suggestTimer = null;
+    let suggestSeq = 0;
+    placeInput.addEventListener('input', () => {
+      settlement = null;
+      setPlaceHint();
+      clearTimeout(suggestTimer);
+      const q = placeInput.value.trim();
+      if (q.length < 2) {
+        suggest.replaceChildren();
+        return;
+      }
+      suggestTimer = setTimeout(async () => {
+        const seq = ++suggestSeq;
+        try {
+          const data = await api('GET', `/settlements?q=${encodeURIComponent(q)}`);
+          if (seq !== suggestSeq) return;
+          suggest.replaceChildren(...data.items.map((s) => h('button', {
+            class: 'ds-suggest__item', type: 'button', role: 'option',
+            onclick: () => {
+              settlement = s;
+              placeInput.value = s.name;
+              suggest.replaceChildren();
+              setPlaceHint();
+            },
+          }, h('span', { class: 'ds-suggest__name', text: s.name }), h('span', { class: 'ds-suggest__meta', text: describe(s) }))));
+          if (data.items.length === 0) placeHint.textContent = 'Такого населённого пункта нет в справочнике';
+        } catch (err) {
+          placeHint.textContent = err.message;
+        }
+      }, 250);
+    });
+    const placeField = h('div', { class: 'ds-field' },
+      h('label', { class: 'ds-field__label', for: 'place', text: 'Населённый пункт' }), placeInput, suggest, placeHint);
+
+    // Расстояние
+    const km = numberInput('Расстояние', c.maxKm, 'км');
+    const kmHint = h('span', { class: 'ds-field__hint', text: 'Пусто — расстояние не ограничено' });
+    const kmField = h('div', { class: 'ds-field' }, h('span', { class: 'ds-field__label', text: 'Не дальше чем' }), km.wrap, kmHint);
+
+    const modeInputs = {};
+    const modes = h('div', { class: 'ds-options', role: 'radiogroup' }, MODES.map(([key, title, hint]) => {
+      const input = h('input', { class: 'ds-option__input', type: 'radio', name: 'distance-mode', value: key, checked: c.distanceMode === key });
+      modeInputs[key] = input;
+      return h('label', { class: 'ds-option' }, input, h('span', { class: 'ds-option__body' },
+        h('span', { class: 'ds-option__title', text: title }), h('span', { class: 'ds-option__hint', text: hint })));
+    }));
+
+    const price = rangeField('Цена', c.priceUsd, '$');
+    const house = rangeField('Площадь дома', c.houseM2, 'м²');
+    const plot = rangeField('Площадь участка', c.plotSotki, 'сот.');
+
+    // Сайты
+    const sourceInputs = {};
+    const sitesHint = h('p', { class: 'ds-hint' });
+    const sites = h('div', { class: 'ds-list' }, SOURCES.map(([key, title]) => {
+      const input = h('input', { class: 'ds-switch__input', type: 'checkbox', checked: c.sources.includes(key) });
+      sourceInputs[key] = input;
+      return h('label', { class: 'ds-list-item' }, h('span', { class: 'ds-grow', text: title }),
+        h('span', { class: 'ds-switch' }, input, h('span', { class: 'ds-switch__track' })));
+    }));
+
+    const clearErrors = () => {
+      placeInput.className = 'ds-input';
+      km.wrap.className = 'ds-affix';
+      kmHint.textContent = 'Пусто — расстояние не ограничено';
+      for (const r of [price, house, plot]) r.setError(null);
+      sitesHint.textContent = '';
+    };
+
+    const showErrors = (fields) => {
+      if (fields.settlementId) {
+        placeInput.className = 'ds-input ds-input--error';
+        placeHint.textContent = fields.settlementId;
+      }
+      if (fields.maxKm) {
+        km.wrap.className = 'ds-affix ds-affix--error';
+        kmHint.textContent = fields.maxKm;
+      }
+      if (fields.priceUsd) price.setError(fields.priceUsd);
+      if (fields.houseM2) house.setError(fields.houseM2);
+      if (fields.plotSotki) plot.setError(fields.plotSotki);
+      if (fields.sources) sitesHint.textContent = fields.sources;
+      if (fields.distanceMode) toast(fields.distanceMode);
+    };
+
+    const collect = () => ({
+      settlementId: settlement ? settlement.id : null,
+      distanceMode: Object.keys(modeInputs).find((key) => modeInputs[key].checked) || 'straight',
+      maxKm: parseNumber(km.input.value),
+      priceUsd: price.value(),
+      houseM2: house.value(),
+      plotSotki: plot.value(),
+      sources: Object.keys(sourceInputs).filter((key) => sourceInputs[key].checked),
+    });
+
+    const localErrors = (criteria) => {
+      const fields = {};
+      const bad = (n) => Number.isNaN(n);
+      if (bad(criteria.maxKm)) fields.maxKm = 'Введите число';
+      for (const [key, r] of [['priceUsd', criteria.priceUsd], ['houseM2', criteria.houseM2], ['plotSotki', criteria.plotSotki]]) {
+        if (bad(r.min) || bad(r.max)) fields[key] = 'Введите число';
+      }
+      if (criteria.sources.length === 0) fields.sources = 'Выберите хотя бы один сайт';
+      return fields;
+    };
+
+    const saveButton = h('button', { class: 'ds-btn ds-btn--block', type: 'button', text: 'Сохранить поиск' });
+    saveButton.addEventListener('click', async () => {
+      clearErrors();
+      const criteria = collect();
+      const local = localErrors(criteria);
+      if (Object.keys(local).length) {
+        showErrors(local);
+        return;
+      }
+      saveButton.disabled = true;
+      try {
+        const saved = id ? await api('PUT', `/searches/${id}`, criteria) : await api('POST', '/searches', criteria);
+        toast('Поиск сохранён');
+        go(`#/search/${saved.id}`);
+      } catch (err) {
+        if (err.status === 422) showErrors(err.fields);
+        else toast(err.message);
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+
+    const parts = [
+      h('p', { class: 'ds-title', text: search ? search.title : 'Новый поиск' }),
+    ];
+
+    if (search) {
+      const pause = h('input', { class: 'ds-switch__input', type: 'checkbox', checked: search.status === 'paused' });
+      pause.addEventListener('change', async () => {
+        pause.disabled = true;
+        try {
+          await api('POST', `/searches/${id}/${pause.checked ? 'pause' : 'resume'}`);
+          toast(pause.checked ? 'Поиск на паузе' : 'Поиск включён');
+        } catch (err) {
+          pause.checked = !pause.checked;
+          toast(err.message);
+        } finally {
+          pause.disabled = false;
+        }
+      });
+      parts.push(
+        h('button', { class: 'ds-btn ds-btn--block', type: 'button', text: 'Показать объявления', onclick: () => go(`#/search/${id}/listings?page=1`) }),
+        h('div', { class: 'ds-list' }, h('label', { class: 'ds-list-item' },
+          h('span', { class: 'ds-list-item__body' },
+            h('span', { class: 'ds-list-item__title', text: 'Пауза' }),
+            h('span', { class: 'ds-list-item__meta', text: 'На паузе уведомления не приходят' })),
+          h('span', { class: 'ds-switch' }, pause, h('span', { class: 'ds-switch__track' })))),
+      );
+    }
+
+    parts.push(
+      h('div', { class: 'ds-card ds-stack' }, placeField, kmField),
+      h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Как считать расстояние' }), modes),
+      h('div', { class: 'ds-card ds-stack' }, price.field, house.field, plot.field),
+      h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Сайты' }), sites, sitesHint),
+      saveButton,
+    );
+
+    if (search) {
+      parts.push(h('button', {
+        class: 'ds-btn ds-btn--block ds-btn--danger', type: 'button', text: 'Удалить поиск',
+        onclick: () => confirmThen('Удалить поиск? Уведомления по нему больше не придут.', async () => {
+          try {
+            await api('DELETE', `/searches/${id}`);
+            toast('Поиск удалён');
+            go('#/');
+          } catch (err) {
+            toast(err.message);
+          }
+        }),
+      }));
+    }
+    show(...parts);
+  }
+
+  function confirmThen(text, action) {
+    if (tg && tg.showConfirm) tg.showConfirm(text, (ok) => { if (ok) action(); });
+    else if (window.confirm(text)) action();
+  }
+
+  // ---------- Объявления поиска ----------
+
+  function priceParts(card) {
+    if (card.priceUsd !== null) {
+      return [`${formatNum(card.priceUsd)} $`, card.priceByn !== null ? `${formatNum(card.priceByn)} BYN` : null];
+    }
+    if (card.priceByn !== null) return [`${formatNum(card.priceByn)} BYN`, null];
+    return ['Цена не указана', null];
+  }
+
+  function distanceFact(d) {
+    if (!d) return null;
+    let label;
+    if (d.pending) label = 'По прямой, считается';
+    else if (d.fallback) label = 'По прямой (маршрут не построен)';
+    else label = { straight: 'По прямой', road_center: 'По дороге', road_exit: 'От выезда' }[d.mode];
+    if (d.approx) label = `≈ ${label}`;
+    return fact(label, d.km === null ? null : `${d.km.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} км`);
+  }
+
+  function fact(label, value) {
+    return h('span', { class: 'ds-fact' },
+      h('span', { class: 'ds-fact__label', text: label }),
+      value === null
+        ? h('span', { class: 'ds-fact__value ds-fact__value--unknown', text: 'не указано' })
+        : h('span', { class: 'ds-fact__value', text: value }));
+  }
+
+  function openLink(url) {
+    if (tg && tg.openLink) tg.openLink(url);
+    else window.open(url, '_blank', 'noopener');
+  }
+
+  function listingCard(card) {
+    const [price, alt] = priceParts(card);
+    const photo = card.photoUrl
+      ? h('img', { class: 'ds-listing__photo', src: card.photoUrl, alt: 'Фото дома', loading: 'lazy', referrerpolicy: 'no-referrer' })
+      : h('div', { class: 'ds-listing__photo ds-listing__photo--empty', role: 'img', 'aria-label': 'Фото нет', text: '🏡' });
+    return h('article', { class: 'ds-listing' }, photo,
+      h('div', { class: 'ds-listing__body' },
+        h('div', { class: 'ds-listing__top' },
+          h('div', null,
+            h('div', { class: 'ds-listing__price', text: price }),
+            alt ? h('div', { class: 'ds-listing__price-alt', text: alt }) : null),
+          h('div', { class: 'ds-chips' }, h('span', { class: 'ds-chip', text: SOURCE_TITLE[card.source] || card.source }))),
+        h('div', { class: 'ds-listing__facts' },
+          fact('Дом', card.houseM2 === null ? null : `${formatNum(card.houseM2)} м²`),
+          fact('Участок', card.plotSotki === null ? null : `${card.plotSotki.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} сот.`),
+          distanceFact(card.distance)),
+        h('div', { class: 'ds-listing__place', text: card.place }),
+        h('div', { class: 'ds-listing__meta' }, h('span', { text: SOURCE_TITLE[card.source] || card.source }), h('span', { text: relativeTime(card.publishedAt) })),
+        h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Открыть объявление', onclick: () => openLink(card.url) })));
+  }
+
+  async function showListings(id, page) {
+    setBack(`#/search/${id}`);
+    show(spinner('Загружаем объявления…'));
+    const [search, data] = await Promise.all([api('GET', `/searches/${id}`), api('GET', `/searches/${id}/listings?page=${page}`)]);
+    const title = h('p', { class: 'ds-title', text: search.title });
+    if (data.total === 0) {
+      show(title, empty('🔍', 'Пока ничего не подходит', 'Попробуйте увеличить расстояние или цену — новые объявления придут сообщением.',
+        h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Изменить условия', onclick: () => go(`#/search/${id}`) })));
+      return;
+    }
+    const from = (data.page - 1) * data.pageSize + 1;
+    const to = Math.min(data.total, from + data.items.length - 1);
+    const pages = Math.ceil(data.total / (data.pageSize || PAGE_SIZE));
+    const pager = h('div', { class: 'ds-pager' },
+      h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: '‹ Назад', disabled: data.page <= 1, onclick: () => go(`#/search/${id}/listings?page=${data.page - 1}`) }),
+      h('span', { class: 'ds-pager__info', text: `${from}–${to} из ${data.total}` }),
+      h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Дальше ›', disabled: data.page >= pages, onclick: () => go(`#/search/${id}/listings?page=${data.page + 1}`) }));
+    show(title, h('div', { class: 'ds-stack' }, data.items.map(listingCard)), pager);
+  }
+
+  // ---------- Запуск ----------
+
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.BackButton.onClick(() => go(backTarget || '#/'));
+  }
+  // Telegram дописывает параметры запуска к адресу после «?» — убрать их из адреса экрана.
+  const start = parseHash();
+  const rest = start.params.toString();
+  history.replaceState(null, '', `#${start.path}${rest ? `?${rest}` : ''}`);
+  window.addEventListener('hashchange', render);
+  render();
+})();
