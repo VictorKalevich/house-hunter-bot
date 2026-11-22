@@ -75,7 +75,7 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 
 | Ветка | Спецификация | Статус |
 |---|---|---|
-| `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | план готов (конституция 1.2.0), дальше `/speckit-tasks` |
+| `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | задачи готовы (88, MVP — US1), дальше `/speckit-implement` |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

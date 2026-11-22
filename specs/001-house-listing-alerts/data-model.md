@@ -15,7 +15,7 @@ users 1───* notifications *───1 listings (по паре source + ext
 sources 1───* feeds (ленты выдачи: регионы и разделы сайта)
 sources 1───* listings
 settlements 1───* distances *───(geo_key)─── listings
-access_denials, rates, locks — служебные
+access_denials, rates, service_quota, locks — служебные
 ```
 
 ## users — пользователь
@@ -106,7 +106,8 @@ access_denials, rates, locks — служебные
 | `max_id_seen` | INTEGER NULL | Наибольший номер объявления, который бот видел (для сайтов с растущими номерами) |
 | `new_id_floor` | INTEGER NULL | Отметка суточной давности: объявление с номером выше неё — новое на сайте |
 | `id_snapshot` | INTEGER NULL | `max_id_seen` на момент прошлой суточной смены отметки |
-| `robots_checked_at` | INTEGER NULL | Когда последний раз сверяли адреса лент с robots.txt |
+| `robots_checked_at` | INTEGER NULL | Когда последний раз сверяли адреса лент с robots.txt; старше 26 ч — перед опросом сначала сверка |
+| `adapter_state` | TEXT NULL | Состояние адаптера между запросами (JSON), например `{"buildId": "…"}` у domovita |
 | `consecutive_failures` | INTEGER | Сбои подряд |
 | `error_kind` | TEXT NULL | `http` \| `blocked` \| `parse` \| `empty` |
 | `error_text` | TEXT NULL | Короткое описание для владельца (без содержимого страниц) |
@@ -171,7 +172,8 @@ disallowed ──robots.txt снова разрешает──▶ ok
 | `first_seen_at` | INTEGER NOT NULL | Когда бот впервые увидел объявление |
 | `last_seen_at` | INTEGER NOT NULL | Когда видел в выдаче последний раз; обновляется не чаще раза в сутки, чтобы беречь лимит записей D1 |
 | `match_state` | TEXT NOT NULL | `pending` \| `done` — прошёл ли отбор под поиски |
-| `match_waiting_since` | INTEGER NULL | С какого времени отбор ждёт дорожных расстояний |
+| `match_waiting_since` | INTEGER NULL | С какого времени отбор ждёт дорожных расстояний или карточки |
+| `needs_detail` | INTEGER NOT NULL | 1 — нужно прочитать карточку объявления (moyareklama: координаты); до чтения место — по справочнику пунктов (`geo_approx = 1`) |
 
 Правила:
 
@@ -189,6 +191,8 @@ disallowed ──robots.txt снова разрешает──▶ ok
 (нет) ──первый раз в выдаче, is_new = 0──▶ done (только для списка, без уведомлений)
 pending ──нужны дорожные расстояния, ещё не посчитаны──▶ pending (match_waiting_since)
          └─ ждёт дольше 20 мин ──▶ отбор по прямой с пометкой «по прямой» ──▶ done
+pending ──needs_detail = 1──▶ pending, пока карточку не прочитали
+         └─ ждёт дольше 20 мин ──▶ отбор по месту из справочника («≈») ──▶ done
 ```
 
 Самый первый опрос источника (отметок ещё нет) только запоминает объявления: все получают `is_new = 0`.
@@ -284,6 +288,15 @@ pending ──пользователь лишился доступа──▶ un
 | `fetched_at` | INTEGER | |
 
 Обновляется раз в сутки. Если курса на сегодня ещё нет, берётся последний известный.
+
+## service_quota — суточные квоты внешних сервисов
+
+| Поле | Тип | Правила |
+|---|---|---|
+| `service` | TEXT PK | `ors_directions` \| `ors_matrix` \| `osrm` |
+| `day` | TEXT NOT NULL | `YYYY-MM-DD` (UTC); новый день — `used = 0` |
+| `used` | INTEGER NOT NULL | Запросов за день; не больше лимита из `src/config.js` (ORS: 2 000 / 500, OSRM: 300) |
+| `paused_until` | INTEGER NULL | До какого времени не обращаться: ответ 403 «квота исчерпана», 429 (`x-ratelimit-reset`, `Retry-After`) |
 
 ## locks — блокировка тика
 
