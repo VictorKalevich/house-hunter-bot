@@ -96,3 +96,37 @@ node scripts/setup-telegram.mjs                          # setWebhook с secret_
    третьего аккаунта — отказ; «Пользователи» → «Закрыть доступ» → второй аккаунт получает «Доступ к боту закрыт».
 6. **Наблюдение**: `npx wrangler tail` — строки тиков без `exceededCpu`; панель D1 — чтения и записи в пределах
    оценки data-model.md; первое реальное уведомление приходит ≤ 30 мин после появления объявления (SC-001).
+
+## 7. Ход выката (T088) — где остановились
+
+Состояние на 2026-11-22, 14:30 UTC. Ветка `001-house-listing-alerts`, в `main` не влита (только по команде владельца).
+Начатую работу продолжать отсюда по порядку.
+
+**Сделано**
+
+- `npx wrangler whoami` — вход в Cloudflare есть (OAuth, аккаунт владельца).
+- `npx wrangler d1 create house-hunter --location eeur` — база создана, `database_id` записан в `wrangler.jsonc`.
+- `npx wrangler d1 migrations apply house-hunter --remote` — `0001_init.sql` применена.
+- `npx wrangler d1 execute house-hunter --remote --file seeds/settlements.sql` — справочник загружен:
+  `SELECT COUNT(*) FROM settlements` = 22 497. Повторно не загружать: это ещё ~90 тыс. записей D1.
+
+**Не сделано — по порядку**
+
+1. Данные от владельца (§1): токен и имя бота от @BotFather, свой Telegram ID, ключ openrouteservice. Владелец сам
+   создаёт `.dev.vars` из `.dev.vars.example` и вписывает `BOT_TOKEN`, `OWNER_TELEGRAM_ID`, `ORS_API_KEY`; агент
+   дописывает `WEBHOOK_SECRET` (случайная строка из `A-Z a-z 0-9 _ -`). Секреты — не в чат и не в коммит. Имя бота
+   (не секрет) — в `vars.BOT_USERNAME` в `wrangler.jsonc`: оно уходит сайтам в `User-Agent`, с заглушкой не выкатывать.
+2. Первый выкат — с секретами из файла: `npx wrangler deploy --secrets-file .dev.vars` (Wrangler 4.166 принимает
+   `.env` и JSON; Worker'а ещё нет, поэтому `wrangler secret put` до выката не подходит). Адрес из вывода
+   (`https://house-hunter-bot.<поддомен>.workers.dev`) → `vars.PUBLIC_URL` → `npx wrangler deploy` ещё раз (секреты
+   сохраняются).
+3. `node scripts/setup-telegram.mjs --dry-run`, затем без `--dry-run`; ожидание — как в §5.
+4. Проверка §6 вместе с владельцем; итоги — в этот раздел; T088 отметить в tasks.md, строку фичи в `CLAUDE.md`
+   обновить; коммит.
+
+**Выкат не раньше 2026-11-23 00:00 UTC (03:00 по Минску) — лимит записей D1.** Справочник записал 89 988 строк
+(каждый пункт — строка и индексы) из 100 000 бесплатных в сутки на аккаунт; счётчик сбрасывается в 00:00 UTC. Бот с
+первым часом разогрева пишет ~20 тыс. строк в сутки (data-model.md «Лимиты D1», замер `budget.e2e`), то есть за
+остаток 22 ноября — около 10 тыс., впритык к лимиту: запросы к D1 начали бы отказывать до сброса. `wrangler deploy`
+сразу запускает cron, поэтому выкат — после сброса; `.dev.vars` и имя бота можно подготовить раньше. Счётчик
+`npx wrangler d1 info house-hunter` (`rows_written_24h`) отстаёт: сразу после загрузки показывал 0.

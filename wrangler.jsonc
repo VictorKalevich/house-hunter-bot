@@ -9,7 +9,7 @@
     {
       "binding": "DB",
       "database_name": "house-hunter",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "2f537dee-3ef5-40b9-880b-ddc8a43b6ede",
       "migrations_dir": "migrations"
     }
   ],
