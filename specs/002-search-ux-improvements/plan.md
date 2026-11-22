@@ -113,15 +113,15 @@ src/
 tests/
 ├── unit/                       # criteria, validate (новый), format, listing-card, sources-status (новый), normalize
 ├── sources/*.test.mjs          # тип у каждого объявления
-└── e2e/                        # kinds.e2e.mjs (новый): тип, дозаполнение, 422, состояние сайтов, флаги
+└── e2e/                        # kinds.e2e.mjs, sources-status.e2e.mjs (новые); listings, manage, distance — новые случаи
 README.md                       # «Как пользоваться»: типы, итог, копирование, состояние сайтов
 ```
 
 **Structure Decision**: структура 001 не меняется; новые файлы — миграция `0002_kinds.sql`, два юнит-теста
-(`tests/unit/validate.test.mjs`, `tests/unit/sources-status.test.mjs`) и сквозной сценарий `tests/e2e/kinds.e2e.mjs`;
-модулей кода не прибавляется. Правило «сбой подтверждён»
-живёт в `src/db/sources.js` рядом с остальной логикой состояний источника, чтобы `poll-feeds` и API брали его из
-одного места.
+(`tests/unit/validate.test.mjs`, `tests/unit/sources-status.test.mjs`) и два сквозных сценария
+(`tests/e2e/kinds.e2e.mjs` — тип, фильтр, дозаполнение; `tests/e2e/sources-status.e2e.mjs` — состояние сайтов);
+модулей кода не прибавляется. Правило «сбой подтверждён» живёт в `src/db/sources.js` рядом с остальной логикой
+состояний источника, чтобы `poll-feeds` и API брали его из одного места.
 
 ## Complexity Tracking
 
