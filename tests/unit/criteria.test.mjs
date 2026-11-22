@@ -40,6 +40,20 @@ test('фильтр по сайтам поиска', () => {
   assert.equal(passesFilters(listing({ source: 'kufar' }), search({ sources: 'kufar' })), true);
 });
 
+test('тип объекта: группы поиска; неизвестный тип не отсекается (фича 002)', () => {
+  const homes = search({ kinds: 'house' });
+  assert.equal(passesFilters(listing({ kind: 'house' }), homes), true);
+  assert.equal(passesFilters(listing({ kind: 'cottage' }), homes), true);
+  assert.equal(passesFilters(listing({ kind: 'dacha' }), homes), false);
+  assert.equal(passesFilters(listing({ kind: 'part' }), homes), false);
+  assert.equal(passesFilters(listing({ kind: null }), homes), true);
+  assert.equal(passesFilters(listing(), homes), true, 'тип не указан');
+  assert.equal(passesFilters(listing({ kind: 'part' }), search({ kinds: 'house,part' })), true);
+  assert.equal(passesFilters(listing({ kind: 'dacha' }), search()), true, 'поиск без поля kinds — все типы');
+  assert.equal(matchesSearch(listing({ kind: 'dacha' }), homes, { distanceKm: 10, forNotification: true }), false);
+  assert.equal(matchesSearch(listing({ kind: 'cottage' }), homes, { distanceKm: 10, forNotification: true }), true);
+});
+
 test('расстояние: лимит включительный (по 0,1 км), без места при max_km — не подходит', () => {
   assert.equal(matchesSearch(listing(), search(), { distanceKm: 30.04 }), true);
   assert.equal(matchesSearch(listing(), search(), { distanceKm: 30.06 }), false);

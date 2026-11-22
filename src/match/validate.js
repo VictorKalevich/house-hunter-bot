@@ -1,9 +1,9 @@
 // Проверка Criteria (contracts/miniapp-api.md «Правила проверки», data-model.md searches).
-import { MAX_KM, SOURCE_IDS } from '../config.js';
+import { KIND_GROUP_IDS, MAX_KM, SOURCE_IDS } from '../config.js';
 import { formatInt } from './format.js';
 
 export const DISTANCE_MODES = ['straight', 'road_center', 'road_exit'];
-const MODE_TITLE = { straight: 'по прямой', road_center: 'по дороге', road_exit: 'по дороге от выезда' };
+const MODE_TITLE = { straight: 'по прямой', road_center: 'по дороге от центра', road_exit: 'по дороге от выезда' };
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
@@ -41,6 +41,8 @@ export function validateCriteria(body, { allowedModes = DISTANCE_MODES } = {}) {
   const settlementId = body.settlementId ?? null;
   if (settlementId !== null && !Number.isSafeInteger(settlementId)) fields.settlementId = 'Выберите населённый пункт из списка';
   if (maxKm !== null && settlementId === null) fields.settlementId = 'Выберите населённый пункт, от которого считать расстояние';
+  // Пункт без расстояния искал бы по всей стране (specs/002-search-ux-improvements, FR-008).
+  if (Number.isSafeInteger(settlementId) && maxKm === null) fields.maxKm = 'Укажите расстояние или очистите населённый пункт';
 
   const distanceMode = body.distanceMode ?? 'straight';
   if (!allowedModes.includes(distanceMode)) fields.distanceMode = 'Такой способ подсчёта расстояния недоступен';
@@ -56,8 +58,15 @@ export function validateCriteria(body, { allowedModes = DISTANCE_MODES } = {}) {
   }
   sources = SOURCE_IDS.filter((s) => sources.includes(s));
 
+  let kinds = body.kinds ?? KIND_GROUP_IDS;
+  if (!Array.isArray(kinds) || kinds.length === 0 || kinds.some((k) => !KIND_GROUP_IDS.includes(k))) {
+    fields.kinds = 'Выберите хотя бы один тип';
+    kinds = KIND_GROUP_IDS;
+  }
+  kinds = KIND_GROUP_IDS.filter((k) => kinds.includes(k));
+
   if (Object.keys(fields).length) return { criteria: null, fields };
-  return { criteria: { settlementId, distanceMode, maxKm, priceUsd, houseM2, plotSotki, sources }, fields };
+  return { criteria: { settlementId, distanceMode, maxKm, priceUsd, houseM2, plotSotki, kinds, sources }, fields };
 }
 
 /** «Боровляны · до 30 км по дороге от выезда», без пункта — «Любое место · до 80 000 $». */

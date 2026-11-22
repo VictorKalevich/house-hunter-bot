@@ -6,10 +6,12 @@ import {
   createSearch, deleteSearch, getOwnSearch, listOwnSearches, pauseSearch, resumeSearch, searchToApi, settlementOf,
   updateSearch,
 } from '../db/searches.js';
+import { sourcesStatusRows, userSourcesStatus } from '../db/sources.js';
 import { getUser, upsertOwner } from '../db/users.js';
 import { getSettlement, suggestSettlements } from '../geo/gazetteer.js';
 import { listingCard } from '../match/format.js';
 import { buildTitle, validateCriteria } from '../match/validate.js';
+import { ADAPTERS, feedId } from '../sources/index.js';
 import { verifyInitData } from './miniapp-auth.js';
 
 // Сколько пар «пункт × место» ставить в очередь маршрутов за один запрос списка (одна пачка D1).
@@ -105,6 +107,11 @@ async function route(request, env, url, user, now) {
     return json(200, { items: items.map((s) => ({ id: s.id, name: s.name, kind: s.kind, district: s.district, region: s.region })) });
   }
 
+  if (path === '/api/sources' && method === 'GET') {
+    const { sources, feeds } = await sourcesStatusRows(db);
+    return json(200, { items: userSourcesStatus(sources, feeds, ADAPTERS, feedId) });
+  }
+
   if (path === '/api/searches') {
     if (method === 'GET') return json(200, { items: (await listOwnSearches(db, user.id)).map(searchToApi) });
     if (method === 'POST') {
@@ -144,13 +151,15 @@ async function route(request, env, url, user, now) {
       const page = /^\d{1,6}$/.test(raw) ? Number(raw) : 0;
       if (page < 1) throw new ApiError(422, 'invalid', 'Неверный номер страницы', { page: 'Номер страницы — целое число от 1' });
       const row = await ownSearch(db, user.id, id);
-      const { rows, total, missing } = await listingsOf(db, row, page, now);
+      const { rows, total, totalApprox, distancesPending, missing } = await listingsOf(db, row, page, now);
       await enqueueMissing(db, row, missing, now);
       return json(200, {
         items: rows.map(({ row: listing, distance }) => listingCard(listing, distance)),
         page,
         pageSize: LIST_PAGE_SIZE,
         total,
+        totalApprox,
+        distancesPending,
       });
     }
   }

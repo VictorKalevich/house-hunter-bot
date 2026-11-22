@@ -74,14 +74,16 @@ test('по прямой 25 км при лимите 30 — в списке; пе
   const before = await listing(searchId);
   const item = byPlace(before.items, p25);
   assert.deepEqual(item.distance, { km: 25, mode: 'straight', approx: false, fallback: false, pending: false });
+  assert.equal(before.distancesPending, false);
 
   const put = await h.api(MEMBER, 'PUT', `/searches/${searchId}`, criteria({ settlementId: C.id, maxKm: 30, distanceMode: 'road_center' }));
   assert.equal(put.status, 200);
-  assert.equal(put.body.title, 'Минск · до 30 км по дороге');
+  assert.equal(put.body.title, 'Минск · до 30 км по дороге от центра');
   const pending = await listing(searchId);
   const p = byPlace(pending.items, p25);
   assert.equal(p.distance.mode, 'road_center');
   assert.equal(p.distance.pending, true);
+  assert.equal(pending.distancesPending, true, 'число может уточниться');
   assert.equal(p.distance.km, 25);
   const queued = await h.first('SELECT COUNT(*) AS n FROM distances WHERE settlement_id = ? AND status = ?', C.id, 'pending');
   assert.ok(queued.n >= 4);
@@ -100,7 +102,9 @@ test('маршрут посчитан: 38 км по дороге > 30 — объ
 });
 
 test('маршрут не построен → по прямой с пометкой fallback', async () => {
-  const item = byPlace((await listing(searchId)).items, pNoRoad);
+  const list = await listing(searchId);
+  const item = byPlace(list.items, pNoRoad);
+  assert.equal(list.distancesPending, false, 'маршруты посчитаны или не построены — число точное');
   assert.equal(item.distance.fallback, true);
   assert.equal(item.distance.km, Math.round(haversineKm(C.lat, C.lon, pNoRoad.lat, pNoRoad.lon) * 10) / 10);
   assert.equal((await h.first('SELECT status FROM distances WHERE geo_key = ?', key(pNoRoad))).status, 'failed');

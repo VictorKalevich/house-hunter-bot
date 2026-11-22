@@ -27,6 +27,15 @@ test('цена BYN, «цена не указана», «не указано» у
   assert.match(m.text, /^цена не указана · дом: не указано · участок: не указано\n/);
 });
 
+test('тип объекта — первым словом; без типа — как раньше (фича 002)', () => {
+  const first = (over) => notificationMessage(listing(over), { searchTitles: ['a'] }).text.split('\n')[0];
+  assert.equal(first({ kind: 'dacha', price_usd: 45000, house_m2: 40, plot_sotki: 6 }), 'Дача · <b>45 000 $</b> · дом 40 м² · участок 6 сот.');
+  assert.equal(first({ kind: 'house' }), 'Дом · <b>75 000 $</b> · дом 100 м² · участок 15 сот.');
+  assert.match(first({ kind: 'cottage' }), /^Коттедж · <b>/);
+  assert.match(first({ kind: 'part', price_usd: null, price_byn: null }), /^Часть дома · цена не указана · /);
+  assert.equal(first({ kind: null }), '<b>75 000 $</b> · дом 100 м² · участок 15 сот.');
+});
+
 test('несколько поисков; без расстояния строки нет', () => {
   const m = notificationMessage(listing(), { searchTitles: ['А', 'Б'] });
   assert.equal(m.text.split('\n').length, 3);

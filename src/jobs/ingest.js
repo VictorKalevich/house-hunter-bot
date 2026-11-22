@@ -93,9 +93,10 @@ export async function ingestStep(ctx) {
   return stats;
 }
 
-/** Что поменялось у уже известного объявления: цена, площади; место — если раньше его не было. */
+/** Что поменялось у уже известного объявления: тип, цена, площади; место — если раньше его не было. */
 function changedFields(old, row, raw) {
   const fields = {};
+  if (row.kind !== null && row.kind !== old.kind) fields.kind = row.kind;
   const siteUsd = Boolean(raw.priceUsd) || raw.price?.currency === 'USD';
   if (siteUsd && row.price_usd !== old.price_usd) fields.price_usd = row.price_usd;
   if (!siteUsd && row.price_byn !== old.price_byn) {

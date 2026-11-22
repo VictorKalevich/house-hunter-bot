@@ -1,9 +1,11 @@
 // Шаг тика «ленты»: contracts/source-adapter.md «Ошибки и состояние источника», принцип I.
 import {
-  BLOCKED_BACKOFF_HOURS, EMPTY_TO_FAIL, FAILS_TO_ALERT, FEED_JITTER_MS, FETCH_TIMEOUT_MS, HOUR, MINUTE,
+  BLOCKED_BACKOFF_HOURS, EMPTY_TO_FAIL, FEED_JITTER_MS, FETCH_TIMEOUT_MS, HOUR, MINUTE,
   ROBOTS_MAX_AGE_MS, SOURCE_MIN_GAP_MS, userAgent,
 } from '../config.js';
-import { claimSite, ensureStatements, loadSourcesAndFeeds, updateSourceStatement } from '../db/sources.js';
+import {
+  claimSite, ensureStatements, isConfirmedFailure, loadSourcesAndFeeds, updateSourceStatement,
+} from '../db/sources.js';
 import { updateFeedStatement } from '../db/feeds.js';
 import { pendingDetail, detailResultStatement } from '../db/listings.js';
 import { ADAPTERS, feedId } from '../sources/index.js';
@@ -187,9 +189,8 @@ async function onFailure(ctx, src, kind, text) {
   } else {
     fields.state = src.state === 'blocked' ? 'blocked' : 'failing';
   }
-  const alertNow = kind === 'blocked' || kind === 'disallowed' || failures >= FAILS_TO_ALERT;
-  if (alertNow && src.alerted_at === null) {
-    const row = { ...src, ...fields };
+  const row = { ...src, ...fields };
+  if (isConfirmedFailure(row) && src.alerted_at === null) {
     const sent = await sendOwnerAlert(env, failureAlertText(row, { nextCheckHours: nextCheckHours ?? 1 }), src.id);
     ctx.budget.use(1);
     if (sent) fields.alerted_at = now;

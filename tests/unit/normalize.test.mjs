@@ -26,6 +26,13 @@ const raw = (over = {}) => ({
   ...over,
 });
 
+test('тип объекта переносится в строку; чужое значение — тип неизвестен (фича 002)', () => {
+  assert.equal(normalizeListing(raw(), numeric, { now, rate: 3 }).kind, 'house');
+  assert.equal(normalizeListing(raw({ kind: 'cottage' }), numeric, { now, rate: 3 }).kind, 'cottage');
+  assert.equal(normalizeListing(raw({ kind: 'flat' }), numeric, { now, rate: 3 }).kind, null);
+  assert.equal(normalizeListing(raw({ kind: undefined }), numeric, { now, rate: 3 }).kind, null);
+});
+
 test('BYN → $ по курсу, если сайт не дал $', () => {
   const row = normalizeListing(raw({ priceUsd: null, priceByn: null, price: { amount: 312000, currency: 'BYN' } }), numeric, { now, rate: 3.12 });
   assert.equal(row.price_usd, 100000);

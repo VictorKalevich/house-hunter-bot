@@ -8,6 +8,12 @@ export const DAY = 24 * HOUR;
 
 export const SOURCE_IDS = ['kufar', 'realt', 'domovita', 'moyareklama'];
 
+// Тип объявления и группы типов в поиске (specs/002-search-ux-improvements/data-model.md).
+export const KINDS = ['house', 'cottage', 'dacha', 'part'];
+export const KIND_GROUPS = { house: ['house', 'cottage'], dacha: ['dacha'], part: ['part'] };
+export const KIND_GROUP_IDS = Object.keys(KIND_GROUPS);
+export const KIND_TITLES = { house: 'Дом', cottage: 'Коттедж', dacha: 'Дача', part: 'Часть дома' };
+
 export function userAgent(env) {
   return `house-hunter-bot/${VERSION} (+https://t.me/${env.BOT_USERNAME})`;
 }

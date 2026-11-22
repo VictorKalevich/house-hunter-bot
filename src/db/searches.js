@@ -31,15 +31,16 @@ export async function listOwnSearches(db, userId) {
 
 const criteriaColumns = (c) => [
   c.settlementId, c.distanceMode, c.maxKm, c.priceUsd.min, c.priceUsd.max, c.houseM2.min, c.houseM2.max,
-  c.plotSotki.min, c.plotSotki.max, c.sources.join(','),
+  c.plotSotki.min, c.plotSotki.max, c.kinds.join(','), c.sources.join(','),
 ];
 
 export async function createSearch(db, userId, criteria, title, now) {
   const r = await db
     .prepare(
       `INSERT INTO searches (user_id, title, settlement_id, distance_mode, max_km, price_min_usd, price_max_usd,
-         house_min_m2, house_max_m2, plot_min_sotki, plot_max_sotki, sources, status, active_since, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
+         house_min_m2, house_max_m2, plot_min_sotki, plot_max_sotki, kinds, sources, status, active_since, created_at,
+         updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
     )
     .bind(userId, title, ...criteriaColumns(criteria), now, now, now)
     .run();
@@ -51,7 +52,7 @@ export async function updateSearch(db, userId, id, criteria, title, now) {
   const r = await db
     .prepare(
       `UPDATE searches SET title = ?, settlement_id = ?, distance_mode = ?, max_km = ?, price_min_usd = ?, price_max_usd = ?,
-         house_min_m2 = ?, house_max_m2 = ?, plot_min_sotki = ?, plot_max_sotki = ?, sources = ?, updated_at = ?
+         house_min_m2 = ?, house_max_m2 = ?, plot_min_sotki = ?, plot_max_sotki = ?, kinds = ?, sources = ?, updated_at = ?
        WHERE id = ? AND user_id = ?`,
     )
     .bind(title, ...criteriaColumns(criteria), now, id, userId)
@@ -106,6 +107,7 @@ export function searchToApi(row) {
       priceUsd: { min: row.price_min_usd, max: row.price_max_usd },
       houseM2: { min: row.house_min_m2, max: row.house_max_m2 },
       plotSotki: { min: row.plot_min_sotki, max: row.plot_max_sotki },
+      kinds: String(row.kinds).split(',').filter(Boolean),
       sources: String(row.sources).split(',').filter(Boolean),
     },
     settlement: s ? { id: s.id, name: s.name, kind: s.kind, district: s.district, region: s.region } : null,

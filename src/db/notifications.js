@@ -13,7 +13,7 @@ export function duePendingStatement(db, now, limit) {
     .prepare(
       `SELECT n.id, n.user_id, n.source, n.external_id, n.listing_id, n.search_ids, n.distance_label, n.attempts,
               u.access, u.blocked_at,
-              l.url, l.price_usd, l.price_byn, l.house_m2, l.plot_sotki, l.place_text, l.photo_url
+              l.url, l.kind, l.price_usd, l.price_byn, l.house_m2, l.plot_sotki, l.place_text, l.photo_url
        FROM notifications n
        JOIN users u ON u.telegram_id = n.user_id
        LEFT JOIN listings l ON l.id = n.listing_id

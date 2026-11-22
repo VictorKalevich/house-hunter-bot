@@ -1,20 +1,20 @@
 // data-model.md listings; список объявлений поиска — contracts/miniapp-api.md «Список объявлений».
-import { LIST_MAX_ROWS, LIST_PAGE_SIZE, LISTING_TTL_MS } from '../config.js';
+import { KIND_GROUP_IDS, KIND_GROUPS, LIST_MAX_ROWS, LIST_PAGE_SIZE, LISTING_TTL_MS } from '../config.js';
 import { boundsAround, haversineKm } from '../geo/haversine.js';
-import { passesFilters } from '../match/criteria.js';
+import { passesFilters, searchKinds } from '../match/criteria.js';
 import { roadDistance } from '../match/distance.js';
 
 const LISTING_COLUMNS = [
-  'source', 'external_id', 'url', 'price_usd', 'price_byn', 'house_m2', 'plot_sotki', 'lat', 'lon', 'geo_approx',
-  'geo_key', 'settlement_id', 'place_text', 'photo_url', 'published_at', 'site_created_at', 'is_new', 'sort_at',
-  'first_seen_at', 'last_seen_at', 'match_state', 'needs_detail',
+  'source', 'external_id', 'url', 'kind', 'price_usd', 'price_byn', 'house_m2', 'plot_sotki', 'lat', 'lon',
+  'geo_approx', 'geo_key', 'settlement_id', 'place_text', 'photo_url', 'published_at', 'site_created_at', 'is_new',
+  'sort_at', 'first_seen_at', 'last_seen_at', 'match_state', 'needs_detail',
 ];
 
 export function existingStatement(db, source, externalIds) {
   return db
     .prepare(
-      `SELECT id, source, external_id, price_usd, price_byn, house_m2, plot_sotki, lat, last_seen_at FROM listings
-       WHERE source = ? AND external_id IN (${externalIds.map(() => '?').join(',')})`,
+      `SELECT id, source, external_id, kind, price_usd, price_byn, house_m2, plot_sotki, lat, last_seen_at
+       FROM listings WHERE source = ? AND external_id IN (${externalIds.map(() => '?').join(',')})`,
     )
     .bind(source, ...externalIds);
 }
@@ -57,12 +57,20 @@ export function detailResultStatement(db, id, coords) {
  * точное расстояние — здесь. Читается не больше LIST_MAX_ROWS строк.
  * @param {object} search строка searches
  * @param {{settlement: object|null, radiusKm: number, page: number, now: number}} ctx
- * @returns {Promise<{rows: Array<{row: object, distance: object|null}>, total: number, missing: Array<{geo_key: string, straight_km: number}>}>}
+ * @returns {Promise<{rows: Array<{row: object, distance: object|null}>, total: number, totalApprox: boolean,
+ *   distancesPending: boolean, missing: Array<{geo_key: string, straight_km: number}>}>} totalApprox — прочитан
+ *   предел строк, total — нижняя граница; distancesPending — у части подходящих дорожное расстояние ещё считается
  */
 export async function searchListings(db, search, { settlement, radiusKm = 0, page = 1, now }) {
   const sources = String(search.sources).split(',').filter(Boolean);
   const where = ['l.last_seen_at >= ?', `l.source IN (${sources.map(() => '?').join(',')})`];
   const params = [now - LISTING_TTL_MS, ...sources];
+  const groups = searchKinds(search);
+  if (groups.length < KIND_GROUP_IDS.length) {
+    const kinds = groups.flatMap((g) => KIND_GROUPS[g] ?? []);
+    where.push(`(l.kind IS NULL OR l.kind IN (${kinds.map(() => '?').join(',')}))`);
+    params.push(...kinds);
+  }
   for (const [column, min, max] of [
     ['price_usd', search.price_min_usd, search.price_max_usd],
     ['house_m2', search.house_min_m2, search.house_max_m2],
@@ -123,5 +131,11 @@ export async function searchListings(db, search, { settlement, radiusKm = 0, pag
     matched.push({ row, distance: { km: d.km, mode: search.distance_mode, approx: row.geo_approx === 1, fallback: d.fallback, pending: d.pending } });
   }
   const offset = (page - 1) * LIST_PAGE_SIZE;
-  return { rows: matched.slice(offset, offset + LIST_PAGE_SIZE), total: matched.length, missing: [...missing.values()] };
+  return {
+    rows: matched.slice(offset, offset + LIST_PAGE_SIZE),
+    total: matched.length,
+    totalApprox: results.length >= LIST_MAX_ROWS,
+    distancesPending: matched.some((m) => m.distance?.pending),
+    missing: [...missing.values()],
+  };
 }

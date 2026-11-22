@@ -99,12 +99,13 @@ node scripts/setup-telegram.mjs                          # setWebhook с secret_
 
 ## 7. Ход выката (T088) — где остановились
 
-Состояние на 2026-11-22, 14:45 UTC. Ветка `001-house-listing-alerts`, в `main` не влита (только по команде владельца).
+Состояние на 2026-11-22, 14:45 UTC. Позже в тот же день по команде владельца ветки 001 и 002 влиты в `main`, код — на
+GitHub (`origin`); выкат — из `main`.
 Начатую работу продолжать отсюда по порядку: владелец в новой сессии (любой аккаунт Claude, этот компьютер, папка
 `C:\ClaudeProjects\house-hunter-bot`) пишет «продолжи T088». Перед шагом 1 агент проверяет: время ≥ 2026-11-23
 00:00 UTC (`date -u`), `npx wrangler whoami` — вход есть, `.dev.vars` на месте и заполнен (без вывода значений).
-`.dev.vars` и вход Wrangler есть только на этом компьютере: с другого — заново `npx wrangler login` и `.dev.vars`
-от владельца.
+`.dev.vars` и вход Wrangler есть только на этом компьютере: с другого — `git clone
+https://github.com/VictorKalevich/house-hunter-bot.git`, заново `npx wrangler login` и `.dev.vars` от владельца.
 
 **Сделано**
 
@@ -121,13 +122,16 @@ node scripts/setup-telegram.mjs                          # setWebhook с secret_
 
 **Не сделано — по порядку**
 
+0. `git switch main`; `npm test` и `npm run test:e2e` — зелёные; затем `npx wrangler d1 migrations apply house-hunter
+   --remote` — применится `0002_kinds.sql` фичи 002 (два новых столбца, строк почти не пишет; `0001` повторно не
+   применяется).
 1. Первый выкат — с секретами из файла: `npx wrangler deploy --secrets-file .dev.vars` (Wrangler 4.166 принимает
    `.env` и JSON; Worker'а ещё нет, поэтому `wrangler secret put` до выката не подходит). Адрес из вывода
    (`https://house-hunter-bot.<поддомен>.workers.dev`) → `vars.PUBLIC_URL` → `npx wrangler deploy` ещё раз (секреты
    сохраняются).
 2. `node scripts/setup-telegram.mjs --dry-run`, затем без `--dry-run`; ожидание — как в §5.
-3. Проверка §6 вместе с владельцем; итоги — в этот раздел; T088 отметить в tasks.md, строку фичи в `CLAUDE.md`
-   обновить; коммит.
+3. Проверка §6 и [quickstart 002 §5](../002-search-ux-improvements/quickstart.md) вместе с владельцем; итоги — в
+   этот раздел; T088 отметить в tasks.md, строку фичи в `CLAUDE.md` обновить; коммит.
 
 **Выкат не раньше 2026-11-23 00:00 UTC (03:00 по Минску) — лимит записей D1.** Справочник записал 89 988 строк
 (каждый пункт — строка и индексы) из 100 000 бесплатных в сутки на аккаунт; счётчик сбрасывается в 00:00 UTC. Бот с

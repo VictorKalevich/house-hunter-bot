@@ -41,8 +41,11 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 | `bug` 1.0.2 + процесс `bugfix` | `/speckit-bug-assess` → `-bug-fix` → `-bug-test` | Ошибка в уже сделанном: разбор, исправление, проверка тестом. Папка `.specify/bugs/<slug>/` |
 | Процессы | `specify workflow list` — `speckit` (полный цикл), `assess`, `bugfix` | Те же шаги по порядку с остановками на проверку |
 
-- Не поставлено: `github` (задачи в GitHub Issues) — у проекта нет репозитория на GitHub. Расширения сообщества в
-  каталоге только для просмотра, без проверки их не ставим.
+- Не поставлено: `github` (задачи в GitHub Issues). Расширения сообщества в каталоге только для просмотра, без
+  проверки их не ставим.
+- Репозиторий на GitHub — `origin`, https://github.com/VictorKalevich/house-hunter-bot (открытый, создан владельцем
+  2026-11-22): всё, что попадает в `main`, видно всем — секреты только в `.dev.vars`, сохранённые страницы
+  обезличены (`tests/unit/security.test.mjs`).
 - `agent-context` нужен Python с PyYAML: в `.claude/settings.local.json` задан `SPECKIT_PYTHON` — Python самого Spec Kit
   (`%APPDATA%\uv\tools\specify-cli\Scripts\python.exe`).
 - Обновление: CLI — `uv tool install specify-cli --force --from git+https://github.com/github/spec-kit.git@vX.Y.Z`
@@ -75,10 +78,11 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 
 | Ветка | Спецификация | Статус |
 |---|---|---|
-| `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | реализация готова: T001–T087, `npm test`, `test:e2e`, `bench` зелёные; идёт T088 — выкат и проверка на живом боте вместе с владельцем: база D1 создана и заполнена, бот `@HouseHunterRBBot` и `.dev.vars` готовы, дальше — `wrangler deploy` не раньше 2026-11-23 00:00 UTC; где остановились и следующие шаги — `quickstart.md` §7 |
+| `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | реализация готова: T001–T087, `npm test`, `test:e2e`, `bench` зелёные; идёт T088 — выкат и проверка на живом боте вместе с владельцем: база D1 создана и заполнена, бот `@HouseHunterRBBot` и `.dev.vars` готовы, влита в `main` 2026-11-22 вместе с 002; дальше — `wrangler deploy` из `main` не раньше 2026-11-23 00:00 UTC, сначала миграция 0002; где остановились и следующие шаги — `quickstart.md` §7, шаг 0 |
+| `002-search-ux-improvements` | `specs/002-search-ux-improvements/` | реализация готова: T001–T048 (тип объекта, итог поиска, ловушки формы, новое/поднятое, сайты в поиске и копия, состояние сайтов для всех), `npm test` (195), `test:e2e` (60), `bench` зелёные; влита в `main` 2026-11-22. Выкат — вместе с T088 фичи 001 из `main`: `npx wrangler d1 migrations apply house-hunter --remote` (`0002_kinds.sql`) перед `wrangler deploy`; проверка в Telegram — `quickstart.md` §5 в рамках T088 |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/001-house-listing-alerts/plan.md
+at specs/002-search-ux-improvements/plan.md
 <!-- SPECKIT END -->
