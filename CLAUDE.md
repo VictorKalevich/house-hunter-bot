@@ -76,10 +76,10 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 | Ветка | Спецификация | Статус |
 |---|---|---|
 | `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | реализация готова: T001–T087, `npm test`, `test:e2e`, `bench` зелёные; идёт T088 — выкат и проверка на живом боте вместе с владельцем: база D1 создана и заполнена, бот `@HouseHunterRBBot` и `.dev.vars` готовы, дальше — `wrangler deploy` не раньше 2026-11-23 00:00 UTC; где остановились и следующие шаги — `quickstart.md` §7 |
-| `002-search-ux-improvements` | `specs/002-search-ux-improvements/` | спецификация готова (тип объекта, итог поиска, ловушки формы, новое/поднятое, сайты в поиске, состояние сайтов для всех); дальше — `/speckit-plan`. Ветка от `001`: если к выкату 002 готова и `npm test`, `test:e2e` зелёные — T088 выкатывать с ветки 002, иначе — с ветки 001 |
+| `002-search-ux-improvements` | `specs/002-search-ux-improvements/` | спецификация и план готовы (тип объекта, итог поиска, ловушки формы, новое/поднятое, сайты в поиске, состояние сайтов для всех; миграция `0002_kinds.sql` — перед `wrangler deploy`); дальше — `/speckit-tasks`. Ветка от `001`: если к выкату 002 готова и `npm test`, `test:e2e` зелёные — T088 выкатывать с ветки 002, иначе — с ветки 001 |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/001-house-listing-alerts/plan.md
+at specs/002-search-ux-improvements/plan.md
 <!-- SPECKIT END -->
