@@ -16,7 +16,7 @@ test('ListingCard: null-поля, расстояние, источник, дат
     source: 'kufar', url: 'https://re.kufar.by/vi/1', photoUrl: null, kind: null,
     priceUsd: 75000, priceByn: 245000, houseM2: null, plotSotki: 15,
     distance: { km: 25.4, mode: 'straight', approx: true, fallback: false, pending: false },
-    place: 'д. Боровляны, Минский р-н', publishedAt: '2026-11-22T09:41:00.000Z',
+    place: 'д. Боровляны, Минский р-н', publishedAt: '2026-11-22T09:41:00.000Z', isNew: false, createdAt: null,
   });
   assert.equal(listingCard(listing({ published_at: null }), null).publishedAt, '2026-11-22T09:45:00.000Z');
   assert.equal(listingCard(listing(), null).distance, null);
@@ -25,6 +25,13 @@ test('ListingCard: null-поля, расстояние, источник, дат
 test('ListingCard: тип объекта (фича 002)', () => {
   assert.equal(listingCard(listing({ kind: 'dacha' }), null).kind, 'dacha');
   assert.equal(listingCard(listing({ kind: null }), null).kind, null);
+});
+
+test('ListingCard: новое на сайте и дата размещения (фича 002)', () => {
+  assert.equal(listingCard(listing({ is_new: 1 }), null).isNew, true);
+  assert.equal(listingCard(listing({ is_new: 0 }), null).isNew, false);
+  assert.equal(listingCard(listing({ site_created_at: Date.parse('2026-10-03T08:00:00Z') }), null).createdAt, '2026-10-03T08:00:00.000Z');
+  assert.equal(listingCard(listing({ site_created_at: null }), null).createdAt, null);
 });
 
 test('ListingCard: дорожное расстояние считается или не построено', () => {

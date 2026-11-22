@@ -57,7 +57,9 @@ export function detailResultStatement(db, id, coords) {
  * точное расстояние — здесь. Читается не больше LIST_MAX_ROWS строк.
  * @param {object} search строка searches
  * @param {{settlement: object|null, radiusKm: number, page: number, now: number}} ctx
- * @returns {Promise<{rows: Array<{row: object, distance: object|null}>, total: number, missing: Array<{geo_key: string, straight_km: number}>}>}
+ * @returns {Promise<{rows: Array<{row: object, distance: object|null}>, total: number, totalApprox: boolean,
+ *   distancesPending: boolean, missing: Array<{geo_key: string, straight_km: number}>}>} totalApprox — прочитан
+ *   предел строк, total — нижняя граница; distancesPending — у части подходящих дорожное расстояние ещё считается
  */
 export async function searchListings(db, search, { settlement, radiusKm = 0, page = 1, now }) {
   const sources = String(search.sources).split(',').filter(Boolean);
@@ -129,5 +131,11 @@ export async function searchListings(db, search, { settlement, radiusKm = 0, pag
     matched.push({ row, distance: { km: d.km, mode: search.distance_mode, approx: row.geo_approx === 1, fallback: d.fallback, pending: d.pending } });
   }
   const offset = (page - 1) * LIST_PAGE_SIZE;
-  return { rows: matched.slice(offset, offset + LIST_PAGE_SIZE), total: matched.length, missing: [...missing.values()] };
+  return {
+    rows: matched.slice(offset, offset + LIST_PAGE_SIZE),
+    total: matched.length,
+    totalApprox: results.length >= LIST_MAX_ROWS,
+    distancesPending: matched.some((m) => m.distance?.pending),
+    missing: [...missing.values()],
+  };
 }

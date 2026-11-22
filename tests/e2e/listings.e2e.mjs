@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { haversineKm } from '../../src/geo/haversine.js';
 import { inRange } from '../../src/match/criteria.js';
-import { createHarness, criteria, MEMBER, PLACES } from './harness.mjs';
+import { createHarness, criteria, kufarAd, MEMBER, PLACES } from './harness.mjs';
 
 let h;
 
@@ -43,6 +43,8 @@ test('без расстояния: только подходящие (в том 
   const pages = await allPages(created.body.id);
   assert.equal(pages[0].total, expected.length);
   assert.equal(pages[0].pageSize, 5);
+  assert.equal(pages[0].totalApprox, false);
+  assert.equal(pages[0].distancesPending, false);
   pages.forEach((p, i) => {
     assert.equal(p.page, i + 1);
     assert.equal(p.items.length, i < pages.length - 1 ? 5 : expected.length - 5 * (pages.length - 1));
@@ -53,7 +55,7 @@ test('без расстояния: только подходящие (в том 
   for (let i = 1; i < items.length; i++) assert.ok(sortAt.get(items[i - 1].url) >= sortAt.get(items[i].url), 'от новых к старым');
 
   const card = items[0];
-  assert.deepEqual(Object.keys(card).sort(), ['distance', 'houseM2', 'kind', 'photoUrl', 'place', 'plotSotki', 'priceByn', 'priceUsd', 'publishedAt', 'source', 'url'].sort());
+  assert.deepEqual(Object.keys(card).sort(), ['createdAt', 'distance', 'houseM2', 'isNew', 'kind', 'photoUrl', 'place', 'plotSotki', 'priceByn', 'priceUsd', 'publishedAt', 'source', 'url'].sort());
   assert.ok(['house', 'cottage', 'dacha', 'part'].includes(card.kind), card.kind);
   assert.equal(card.distance, null);
   assert.ok(['kufar', 'realt'].includes(card.source));
@@ -96,7 +98,7 @@ test('ничего не подходит → total: 0', async () => {
   const created = await h.api(MEMBER, 'POST', '/searches', criteria({ sources: ['moyareklama'] }));
   const res = await h.api(MEMBER, 'GET', `/searches/${created.body.id}/listings?page=1`);
   assert.equal(res.status, 200);
-  assert.deepEqual(res.body, { items: [], page: 1, pageSize: 5, total: 0 });
+  assert.deepEqual(res.body, { items: [], page: 1, pageSize: 5, total: 0, totalApprox: false, distancesPending: false });
 });
 
 test('мои поиски — новые сверху; чужой список → 404', async () => {
@@ -105,4 +107,43 @@ test('мои поиски — новые сверху; чужой список �
   assert.ok(body.items[0].id > body.items[2].id);
   const { OWNER } = await import('./harness.mjs');
   assert.equal((await h.api(OWNER, 'GET', `/searches/${body.items[0].id}/listings?page=1`)).status, 404);
+});
+
+test('подходящих больше, чем читается за раз → totalApprox и нижняя граница (фича 002, FR-007)', async () => {
+  const { LIST_MAX_ROWS } = await import('../../src/config.js');
+  await h.db
+    .prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?1)
+       INSERT INTO listings (source, external_id, url, kind, place_text, is_new, sort_at, first_seen_at, last_seen_at, match_state)
+       SELECT 'domovita', 'bulk-' || i, 'https://domovita.by/bulk/' || i, 'house', 'д. Тестовая', 0, ?2 - i, ?2, ?2, 'done' FROM n`,
+    )
+    .bind(LIST_MAX_ROWS + 5, h.now)
+    .run();
+  const created = await h.api(MEMBER, 'POST', '/searches', criteria({ sources: ['domovita'] }));
+  const res = await h.api(MEMBER, 'GET', `/searches/${created.body.id}/listings?page=1`);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.totalApprox, true);
+  assert.equal(res.body.total, LIST_MAX_ROWS);
+  assert.equal(res.body.items.length, 5);
+  assert.equal(res.body.distancesPending, false);
+});
+
+test('метки списка: новое на сайте и дата размещения (фича 002, US4)', async () => {
+  const fresh = kufarAd({ priceUsd: 40_000 });
+  h.kufarAds = [fresh];
+  await h.pollNow('kufar');
+  await h.ticks(2);
+  const created = await h.api(MEMBER, 'POST', '/searches', criteria({ sources: ['kufar', 'realt'] }));
+  const items = (await allPages(created.body.id)).flatMap((p) => p.items);
+
+  const card = items.find((i) => i.url === fresh.ad_link);
+  assert.equal(card.isNew, true, 'появилось после первого круга — новое');
+  assert.equal(card.createdAt, null, 'kufar не даёт дату размещения');
+  const old = items.filter((i) => i.source === 'kufar' && i.url !== fresh.ad_link);
+  assert.ok(old.length > 0 && old.every((i) => i.isNew === false), 'объявления первого круга — не новые');
+
+  const realt = items.filter((i) => i.source === 'realt');
+  assert.ok(realt.some((i) => i.createdAt !== null), 'realt даёт дату размещения');
+  for (const i of realt.filter((r) => r.createdAt)) assert.ok(!Number.isNaN(Date.parse(i.createdAt)));
+  assert.ok(realt.every((i) => i.isNew === false));
 });

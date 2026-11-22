@@ -88,5 +88,7 @@ export function listingCard(row, distance) {
       : null,
     place: row.place_text ?? '',
     publishedAt: new Date(row.published_at ?? row.first_seen_at).toISOString(),
+    isNew: row.is_new === 1,
+    createdAt: row.site_created_at == null ? null : new Date(row.site_created_at).toISOString(),
   };
 }

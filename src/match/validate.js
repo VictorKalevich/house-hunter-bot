@@ -3,7 +3,7 @@ import { KIND_GROUP_IDS, MAX_KM, SOURCE_IDS } from '../config.js';
 import { formatInt } from './format.js';
 
 export const DISTANCE_MODES = ['straight', 'road_center', 'road_exit'];
-const MODE_TITLE = { straight: 'по прямой', road_center: 'по дороге', road_exit: 'по дороге от выезда' };
+const MODE_TITLE = { straight: 'по прямой', road_center: 'по дороге от центра', road_exit: 'по дороге от выезда' };
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
@@ -41,6 +41,8 @@ export function validateCriteria(body, { allowedModes = DISTANCE_MODES } = {}) {
   const settlementId = body.settlementId ?? null;
   if (settlementId !== null && !Number.isSafeInteger(settlementId)) fields.settlementId = 'Выберите населённый пункт из списка';
   if (maxKm !== null && settlementId === null) fields.settlementId = 'Выберите населённый пункт, от которого считать расстояние';
+  // Пункт без расстояния искал бы по всей стране (specs/002-search-ux-improvements, FR-008).
+  if (Number.isSafeInteger(settlementId) && maxKm === null) fields.maxKm = 'Укажите расстояние или очистите населённый пункт';
 
   const distanceMode = body.distanceMode ?? 'straight';
   if (!allowedModes.includes(distanceMode)) fields.distanceMode = 'Такой способ подсчёта расстояния недоступен';

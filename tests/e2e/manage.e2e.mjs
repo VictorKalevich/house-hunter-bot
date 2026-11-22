@@ -1,7 +1,7 @@
 // Управление поисками (tasks.md T070, US4): пауза, включение, два поиска — одно сообщение, удаление, сайты, 422, 404.
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHarness, criteria, kufarAd, MEMBER, MEMBER2 } from './harness.mjs';
+import { createHarness, criteria, kufarAd, MEMBER, MEMBER2, PLACES } from './harness.mjs';
 
 let h;
 const ids = {};
@@ -92,6 +92,46 @@ test('изменение условий: active_since не меняется, з�
   assert.equal(missing.status, 422);
   assert.ok(missing.body.error.fields.settlementId);
   assert.equal((await h.first('SELECT price_max_usd FROM searches WHERE id = ?', ids.a)).price_max_usd, 95_000);
+});
+
+test('пункт без расстояния → 422 у расстояния, поиск не изменился (фича 002, FR-008)', async () => {
+  const post = await h.api(MEMBER, 'POST', '/searches', criteria({ settlementId: PLACES.minsk.id }));
+  assert.equal(post.status, 422);
+  assert.equal(post.body.error.fields.maxKm, 'Укажите расстояние или очистите населённый пункт');
+  const put = await h.api(MEMBER, 'PUT', `/searches/${ids.a}`, criteria({ settlementId: PLACES.minsk.id, priceUsd: { min: null, max: 1 } }));
+  assert.equal(put.status, 422);
+  assert.ok(put.body.error.fields.maxKm);
+  const row = await h.first('SELECT settlement_id, price_max_usd FROM searches WHERE id = ?', ids.a);
+  assert.deepEqual({ ...row }, { settlement_id: null, price_max_usd: 95_000 });
+});
+
+test('копия поиска: условия из GET → POST, копия включена, исходный не изменился (фича 002, FR-016)', async () => {
+  const original = (await h.api(MEMBER, 'GET', `/searches/${ids.b}`)).body;
+  assert.equal(original.status, 'paused');
+  const before = { ...(await h.first('SELECT * FROM searches WHERE id = ?', ids.b)) };
+
+  const changed = { ...original.criteria, kinds: ['house'], sources: ['moyareklama'] };
+  const copy = await h.api(MEMBER, 'POST', '/searches', changed);
+  assert.equal(copy.status, 201, JSON.stringify(copy.body));
+  ids.copy = copy.body.id;
+  assert.notEqual(ids.copy, ids.b);
+  assert.equal(copy.body.status, 'active', 'копия паузы — включена');
+  assert.deepEqual(copy.body.criteria, changed);
+  const row = await h.first('SELECT active_since, created_at FROM searches WHERE id = ?', ids.copy);
+  assert.equal(row.active_since, row.created_at);
+  assert.deepEqual({ ...(await h.first('SELECT * FROM searches WHERE id = ?', ids.b)) }, before);
+
+  ids.withPlace = (await create(criteria({ settlementId: PLACES.minsk.id, maxKm: 30, kinds: ['dacha', 'part'] }))).id;
+  const withPlace = (await h.api(MEMBER, 'GET', `/searches/${ids.withPlace}`)).body;
+  const same = await h.api(MEMBER, 'POST', '/searches', withPlace.criteria);
+  assert.equal(same.status, 201, 'условия из ответа принимаются без изменений');
+  ids.copySame = same.body.id;
+  assert.deepEqual(same.body.criteria, withPlace.criteria);
+  assert.equal(same.body.title, withPlace.title);
+  assert.deepEqual(same.body.settlement, withPlace.settlement);
+
+  const list = (await h.api(MEMBER, 'GET', '/searches')).body.items.map((s) => s.id);
+  for (const id of [ids.b, ids.copy, ids.withPlace, ids.copySame]) assert.ok(list.includes(id), String(id));
 });
 
 test('чужой поиск → 404 на все действия', async () => {

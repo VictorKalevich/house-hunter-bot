@@ -151,13 +151,15 @@ async function route(request, env, url, user, now) {
       const page = /^\d{1,6}$/.test(raw) ? Number(raw) : 0;
       if (page < 1) throw new ApiError(422, 'invalid', 'Неверный номер страницы', { page: 'Номер страницы — целое число от 1' });
       const row = await ownSearch(db, user.id, id);
-      const { rows, total, missing } = await listingsOf(db, row, page, now);
+      const { rows, total, totalApprox, distancesPending, missing } = await listingsOf(db, row, page, now);
       await enqueueMissing(db, row, missing, now);
       return json(200, {
         items: rows.map(({ row: listing, distance }) => listingCard(listing, distance)),
         page,
         pageSize: LIST_PAGE_SIZE,
         total,
+        totalApprox,
+        distancesPending,
       });
     }
   }

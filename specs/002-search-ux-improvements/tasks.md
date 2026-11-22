@@ -141,23 +141,23 @@ description: "Задачи реализации: тип объекта, поня
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T020 [P] [US2] `tests/e2e/listings.e2e.mjs`: ответ списка содержит `totalApprox: false` и `distancesPending:
+- [X] T020 [P] [US2] `tests/e2e/listings.e2e.mjs`: ответ списка содержит `totalApprox: false` и `distancesPending:
   false`; после вставки одним SQL-запросом (`WITH RECURSIVE`) `LIST_MAX_ROWS` подходящих объявлений — `totalApprox:
   true`, `total` — нижняя граница
-- [ ] T021 [P] [US2] `tests/e2e/distance.e2e.mjs`: поиск «по дороге», маршруты ещё не посчитаны — `distancesPending:
+- [X] T021 [P] [US2] `tests/e2e/distance.e2e.mjs`: поиск «по дороге», маршруты ещё не посчитаны — `distancesPending:
   true`; после тиков маршрутов — `false` (FR-007)
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] `src/db/listings.js` `searchListings` возвращает `totalApprox` (прочитано `LIST_MAX_ROWS` строк) и
+- [X] T022 [US2] `src/db/listings.js` `searchListings` возвращает `totalApprox` (прочитано `LIST_MAX_ROWS` строк) и
   `distancesPending` (у подходящего объявления `distance.pending`); `src/http/api.js` — оба поля в ответе
   `GET /api/searches/{id}/listings` (contracts/miniapp-api.md «Методы»)
-- [ ] T023 [US2] `src/app/app.js.txt` — адреса и переходы по contracts/miniapp-api.md «Экраны» и «Переходы»:
+- [X] T023 [US2] `src/app/app.js.txt` — адреса и переходы по contracts/miniapp-api.md «Экраны» и «Переходы»:
   `#/search/{id}` — итог (новая `showSummary`), `#/search/{id}/edit` — форма; «Назад»: итог → «Мои поиски», форма
   изменения → итог, объявления → итог; из формы убрать «Показать объявления», паузу и «Удалить поиск» (они переходят
   на итог); после «Сохранить» — `#/search/{id}` и «Поиск сохранён»; в пустом списке «Изменить условия» ведёт на
   `#/search/{id}/edit`
-- [ ] T024 [US2] `showSummary(id)` в `src/app/app.js.txt` (строка «Итог поиска» contracts/miniapp-api.md «Экраны»):
+- [X] T024 [US2] `showSummary(id)` в `src/app/app.js.txt` (строка «Итог поиска» contracts/miniapp-api.md «Экраны»):
   `GET /api/searches/{id}` и первая страница списка параллельно; название и метка «Активен» / «Пауза»; заданные
   условия строками — место и расстояние со способом (у старого поиска с пунктом без расстояния — «расстояние не
   ограничено»), цена, площадь дома, площадь участка, типы и сайты — если выбраны не все (FR-005); «Сейчас подходит N
@@ -165,7 +165,7 @@ description: "Задачи реализации: тип объекта, поня
   уточниться в ближайшие минуты» при `distancesPending`; «Показать объявления»; «Новые объявления пришлю сообщением в
   этот чат» или «Поиск на паузе — уведомления не приходят»; переключатель паузы меняет метку и эту строку на месте;
   «Изменить условия»; «Удалить поиск» через `confirmThen`. В списке объявлений счётчик «из N+» при `totalApprox`
-- [ ] T025 [US2] `npm test` (в том числе `tests/design-system.test.mjs`) и `npm run test:e2e` — зелёные
+- [X] T025 [US2] `npm test` (в том числе `tests/design-system.test.mjs`) и `npm run test:e2e` — зелёные
 
 **Checkpoint**: после «Сохранить» человек видит итог; US1 и US2 вместе — MVP фичи
 
@@ -181,24 +181,24 @@ description: "Задачи реализации: тип объекта, поня
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T026 [P] [US3] `tests/unit/validate.test.mjs`: `settlementId` без `maxKm` → `fields.maxKm` «Укажите расстояние
+- [X] T026 [P] [US3] `tests/unit/validate.test.mjs`: `settlementId` без `maxKm` → `fields.maxKm` «Укажите расстояние
   или очистите населённый пункт»; пункт с расстоянием и поиск без пункта и расстояния — без ошибок; `buildTitle` для
   `road_center` → «Минск · до 30 км по дороге от центра», остальные названия — как в 001
-- [ ] T027 [P] [US3] `tests/e2e/manage.e2e.mjs`: `POST` и `PUT /api/searches` с пунктом без расстояния → 422
+- [X] T027 [P] [US3] `tests/e2e/manage.e2e.mjs`: `POST` и `PUT /api/searches` с пунктом без расстояния → 422
   `fields.maxKm`, поиск не изменился; `tests/e2e/distance.e2e.mjs` — ожидаемое название «Минск · до 30 км по дороге от
   центра»
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] `src/match/validate.js`: пункт без расстояния не принимается (data-model.md searches, «Правила»,
+- [X] T028 [US3] `src/match/validate.js`: пункт без расстояния не принимается (data-model.md searches, «Правила»,
   `searches.settlement_id` и `searches.max_km`; ошибка — только у корректного `settlementId`, неверный пункт остаётся
   ошибкой `fields.settlementId`); `MODE_TITLE.road_center` — «по дороге от центра» (data-model.md `searches.title`)
-- [ ] T029 [US3] `src/app/app.js.txt`, форма: подсказка расстояния зависит от выбранного пункта и меняется при выборе
+- [X] T029 [US3] `src/app/app.js.txt`, форма: подсказка расстояния зависит от выбранного пункта и меняется при выборе
   и стирании пункта (тексты contracts/miniapp-api.md «Тексты»); пункт без расстояния — ошибка у поля расстояния до
   отправки; без расстояния, цены и площадей — перед отправкой `tg.showPopup` (если `tg.isVersionAtLeast('6.2')`,
   иначе `window.confirm`) с заголовком, текстом и кнопками «Сохранить так» / «Отмена» из «Тексты» (research.md R4);
   в карточке подписи способа — «По дороге от центра», «По дороге от выезда» (FR-010)
-- [ ] T030 [US3] `npm test` и `npm run test:e2e` — зелёные
+- [X] T030 [US3] `npm test` и `npm run test:e2e` — зелёные
 
 **Checkpoint**: ловушки формы закрыты; US3 проверяется сама по себе
 
@@ -213,23 +213,23 @@ description: "Задачи реализации: тип объекта, поня
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T031 [P] [US4] `tests/unit/listing-card.test.mjs`: `isNew` (`is_new` 1 → `true`, 0 → `false`), `createdAt`
+- [X] T031 [P] [US4] `tests/unit/listing-card.test.mjs`: `isNew` (`is_new` 1 → `true`, 0 → `false`), `createdAt`
   (`site_created_at` → ISO-строка, нет → `null`)
-- [ ] T032 [P] [US4] `tests/e2e/listings.e2e.mjs`: объявления kufar первого круга — `isNew: false`, появившееся после
+- [X] T032 [P] [US4] `tests/e2e/listings.e2e.mjs`: объявления kufar первого круга — `isNew: false`, появившееся после
   него — `isNew: true`; у объявлений realt с сохранённых страниц `createdAt` есть, у kufar — `null`
 
 ### Implementation for User Story 4
 
-- [ ] T033 [US4] `src/match/format.js` `listingCard`: `isNew` и `createdAt` (contracts/miniapp-api.md «Объекты»,
+- [X] T033 [US4] `src/match/format.js` `listingCard`: `isNew` и `createdAt` (contracts/miniapp-api.md «Объекты»,
   `ListingCard`)
-- [ ] T034 [US4] `src/app/app.js.txt`, карточка (research.md R7): метки тип → «Новое» (`ds-chip--brand`) → сайт; в
+- [X] T034 [US4] `src/app/app.js.txt`, карточка (research.md R7): метки тип → «Новое» (`ds-chip--brand`) → сайт; в
   `ds-listing__meta` сайта больше нет (FR-013); у нового — «размещено N назад», у остальных — «обновлено N назад» и,
   если есть `createdAt`, «· размещено 3 окт.»
-- [ ] T035 [US4] `src/app/app.js.txt`, список и итог: `GET /api/sources` параллельно с остальными запросами; пустой
+- [X] T035 [US4] `src/app/app.js.txt`, список и итог: `GET /api/sources` параллельно с остальными запросами; пустой
   список, пока среди сайтов поиска есть `collecting`, — «Бот ещё собирает объявления» и текст из contracts/miniapp-api.md
   «Тексты» (FR-012), иначе — текст 001; на итоге при N = 0 и `collecting` — та же подсказка; ошибка загрузки состояния
   сайтов экран не ломает
-- [ ] T036 [US4] `npm test` и `npm run test:e2e` — зелёные
+- [X] T036 [US4] `npm test` и `npm run test:e2e` — зелёные
 
 **Checkpoint**: поднятые объявления не выглядят новыми; US4 проверяется сама по себе
 
@@ -244,20 +244,20 @@ description: "Задачи реализации: тип объекта, поня
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T037 [P] [US5] `tests/e2e/manage.e2e.mjs`: копия так, как её делает мини-приложение — `criteria` из
+- [X] T037 [P] [US5] `tests/e2e/manage.e2e.mjs`: копия так, как её делает мини-приложение — `criteria` из
   `GET /api/searches/{id}` с другими `sources` → `POST /api/searches` → 201, новый поиск включён и с `active_since` =
   время создания, исходный не изменился, в списке поисков оба; `criteria` из ответа без изменений тоже принимаются
 
 ### Implementation for User Story 5
 
-- [ ] T038 [US5] `src/app/app.js.txt`, форма: строка сайта — `ds-list-item__body` с `__title` (сайт) и `__meta`
+- [X] T038 [US5] `src/app/app.js.txt`, форма: строка сайта — `ds-list-item__body` с `__title` (сайт) и `__meta`
   (охват — «Сайты в форме» из contracts/miniapp-api.md «Тексты»), FR-014
-- [ ] T039 [US5] `src/app/app.js.txt`: описание поиска в «Мои поиски» и условия на итоге перечисляют типы и сайты,
+- [X] T039 [US5] `src/app/app.js.txt`: описание поиска в «Мои поиски» и условия на итоге перечисляют типы и сайты,
   если выбраны не все (FR-015)
-- [ ] T040 [US5] `src/app/app.js.txt`, копирование (research.md R6): на итоге «Копировать поиск» → `#/search/new?copy={id}`;
+- [X] T040 [US5] `src/app/app.js.txt`, копирование (research.md R6): на итоге «Копировать поиск» → `#/search/new?copy={id}`;
   `render()` передаёт `copy` в `showForm`; форма загружает поиск, подставляет условия и пункт, заголовок «Копия:
   <название>», «Назад» → итог исходного поиска; «Сохранить» — `POST /api/searches` и итог нового поиска (FR-016)
-- [ ] T041 [US5] `npm test` и `npm run test:e2e` — зелёные
+- [X] T041 [US5] `npm test` и `npm run test:e2e` — зелёные
 
 **Checkpoint**: разные условия для разных сайтов — копией за минуту; US5 проверяется сама по себе
 
