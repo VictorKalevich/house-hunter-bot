@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "house-hunter-bot",
+  "main": "src/index.js",
+  // Не позже даты, которую поддерживает workerd из miniflare 4 (сквозной тест).
+  "compatibility_date": "2026-07-30",
+  "base_dir": ".",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "house-hunter",
+      "database_id": "2f537dee-3ef5-40b9-880b-ddc8a43b6ede",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    "crons": ["* * * * *", "30 0 * * *"]
+  },
+  "rules": [
+    { "type": "Text", "globs": ["**/*.css", "**/*.html", "**/*.txt"], "fallthrough": false }
+  ],
+  "vars": {
+    "BOT_USERNAME": "HouseHunterRBBot",
+    "PUBLIC_URL": "https://house-hunter-bot.example.workers.dev"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

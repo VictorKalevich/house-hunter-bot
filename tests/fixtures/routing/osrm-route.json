@@ -1,0 +1,41 @@
+{
+  "code": "Ok",
+  "routes": [
+    {
+      "geometry": "_j~gI_bzfDo}@o}@_|BozD_yF_vJ_sN_pR",
+      "legs": [
+        {
+          "steps": [],
+          "summary": "",
+          "weight": 1290.4,
+          "duration": 1210.8,
+          "distance": 21980.1
+        }
+      ],
+      "weight_name": "routability",
+      "weight": 1290.4,
+      "duration": 1210.8,
+      "distance": 21980.1
+    }
+  ],
+  "waypoints": [
+    {
+      "hint": "AAAAAAAAAAA",
+      "distance": 2.1,
+      "name": "",
+      "location": [
+        27.5,
+        53.9
+      ]
+    },
+    {
+      "hint": "BBBBBBBBBBB",
+      "distance": 3.4,
+      "name": "",
+      "location": [
+        27.7,
+        54.05
+      ]
+    }
+  ]
+}

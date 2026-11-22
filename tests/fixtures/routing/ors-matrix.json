@@ -1,0 +1,78 @@
+{
+  "distances": [
+    [
+      18.42,
+      null,
+      33.07
+    ]
+  ],
+  "destinations": [
+    {
+      "location": [
+        27.61,
+        53.98
+      ],
+      "snapped_distance": 12.3
+    },
+    null,
+    {
+      "location": [
+        27.71,
+        54.06
+      ],
+      "snapped_distance": 4.1
+    }
+  ],
+  "sources": [
+    {
+      "location": [
+        27.5,
+        53.9
+      ],
+      "snapped_distance": 2.2
+    }
+  ],
+  "metadata": {
+    "attribution": "openrouteservice.org | OpenStreetMap contributors",
+    "service": "matrix",
+    "timestamp": 1795347600000,
+    "query": {
+      "locations": [
+        [
+          27.5,
+          53.9
+        ],
+        [
+          27.61,
+          53.98
+        ],
+        [
+          27.9,
+          54.4
+        ],
+        [
+          27.71,
+          54.06
+        ]
+      ],
+      "profile": "driving-car",
+      "sources": [
+        "0"
+      ],
+      "destinations": [
+        "1",
+        "2",
+        "3"
+      ],
+      "metrics": [
+        "distance"
+      ],
+      "units": "km"
+    },
+    "engine": {
+      "version": "9.0.0",
+      "build_date": "2026-10-01T00:00:00Z",
+      "graph_date": "2026-11-15T00:00:00Z"
+    }
+  }
+}
