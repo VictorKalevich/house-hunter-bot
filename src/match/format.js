@@ -1,5 +1,6 @@
 // Тексты: уведомление (contracts/telegram-bot.md «Уведомление»), подпись расстояния, карточка ListingCard
 // (contracts/miniapp-api.md «Объекты»).
+import { KIND_TITLES } from '../config.js';
 import { escapeHtml } from '../telegram/html.js';
 import { SOURCE_TITLES } from '../sources/titles.js';
 
@@ -44,8 +45,9 @@ export function notificationMessage(listing, { searchTitles, distanceLabel: dist
   const house = listing.house_m2 ? `дом ${formatDecimal(listing.house_m2)} м²` : 'дом: не указано';
   const plot = listing.plot_sotki ? `участок ${formatDecimal(listing.plot_sotki)} сот.` : 'участок: не указано';
   const titles = searchTitles.map((t) => `«${escapeHtml(t)}»`).join(', ');
+  const kind = KIND_TITLES[listing.kind];
   const lines = [
-    `${priceLine(listing)} · ${house} · ${plot}`,
+    `${kind ? `${kind} · ` : ''}${priceLine(listing)} · ${house} · ${plot}`,
     distance ? escapeHtml(distance) : null,
     listing.place_text ? escapeHtml(listing.place_text) : null,
     `${escapeHtml(SOURCE_TITLES[listing.source] ?? listing.source)} · ${searchTitles.length > 1 ? 'Поиски' : 'Поиск'}: ${titles}`,
@@ -70,6 +72,7 @@ export function listingCard(row, distance) {
     source: row.source,
     url: row.url,
     photoUrl: row.photo_url ?? null,
+    kind: row.kind ?? null,
     priceUsd: row.price_usd ?? null,
     priceByn: row.price_byn ?? null,
     houseM2: row.house_m2 ?? null,

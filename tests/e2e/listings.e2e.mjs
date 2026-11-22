@@ -53,7 +53,8 @@ test('без расстояния: только подходящие (в том 
   for (let i = 1; i < items.length; i++) assert.ok(sortAt.get(items[i - 1].url) >= sortAt.get(items[i].url), 'от новых к старым');
 
   const card = items[0];
-  assert.deepEqual(Object.keys(card).sort(), ['distance', 'houseM2', 'photoUrl', 'place', 'plotSotki', 'priceByn', 'priceUsd', 'publishedAt', 'source', 'url'].sort());
+  assert.deepEqual(Object.keys(card).sort(), ['distance', 'houseM2', 'kind', 'photoUrl', 'place', 'plotSotki', 'priceByn', 'priceUsd', 'publishedAt', 'source', 'url'].sort());
+  assert.ok(['house', 'cottage', 'dacha', 'part'].includes(card.kind), card.kind);
   assert.equal(card.distance, null);
   assert.ok(['kufar', 'realt'].includes(card.source));
   assert.ok(!Number.isNaN(Date.parse(card.publishedAt)));

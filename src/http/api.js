@@ -6,10 +6,12 @@ import {
   createSearch, deleteSearch, getOwnSearch, listOwnSearches, pauseSearch, resumeSearch, searchToApi, settlementOf,
   updateSearch,
 } from '../db/searches.js';
+import { sourcesStatusRows, userSourcesStatus } from '../db/sources.js';
 import { getUser, upsertOwner } from '../db/users.js';
 import { getSettlement, suggestSettlements } from '../geo/gazetteer.js';
 import { listingCard } from '../match/format.js';
 import { buildTitle, validateCriteria } from '../match/validate.js';
+import { ADAPTERS, feedId } from '../sources/index.js';
 import { verifyInitData } from './miniapp-auth.js';
 
 // Сколько пар «пункт × место» ставить в очередь маршрутов за один запрос списка (одна пачка D1).
@@ -103,6 +105,11 @@ async function route(request, env, url, user, now) {
   if (path === '/api/settlements' && method === 'GET') {
     const items = await suggestSettlements(db, url.searchParams.get('q') ?? '');
     return json(200, { items: items.map((s) => ({ id: s.id, name: s.name, kind: s.kind, district: s.district, region: s.region })) });
+  }
+
+  if (path === '/api/sources' && method === 'GET') {
+    const { sources, feeds } = await sourcesStatusRows(db);
+    return json(200, { items: userSourcesStatus(sources, feeds, ADAPTERS, feedId) });
   }
 
   if (path === '/api/searches') {

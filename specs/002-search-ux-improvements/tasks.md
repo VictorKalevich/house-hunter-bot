@@ -40,7 +40,7 @@ description: "Задачи реализации: тип объекта, поня
 
 **Purpose**: общие константы типов объекта
 
-- [ ] T001 Добавить в `src/config.js`: `KINDS` — четыре типа объявления (data-model.md `listings.kind`); `KIND_GROUPS`
+- [X] T001 Добавить в `src/config.js`: `KINDS` — четыре типа объявления (data-model.md `listings.kind`); `KIND_GROUPS`
   — группы поиска и их типы в постоянном порядке `house`, `dacha`, `part` (data-model.md `searches.kinds`, «Группы»);
   `KIND_TITLES` — подписи «Дом», «Коттедж», «Дача», «Часть дома» (data-model.md listings, «Подписи»)
 
@@ -52,24 +52,24 @@ description: "Задачи реализации: тип объекта, поня
 
 **⚠️ CRITICAL**: истории начинаются только после этой фазы
 
-- [ ] T002 Написать `migrations/0002_kinds.sql` по research.md R12: `ALTER TABLE listings ADD COLUMN` (data-model.md
+- [X] T002 Написать `migrations/0002_kinds.sql` по research.md R12: `ALTER TABLE listings ADD COLUMN` (data-model.md
   `listings.kind`) и `ALTER TABLE searches ADD COLUMN` (data-model.md `searches.kinds`); `npm run test:e2e` — сквозные
   тесты 001 зелёные на базе с 0001 и 0002 (стенд применяет все `migrations/*.sql` по порядку)
-- [ ] T003 [P] Тест `tests/unit/sources-status.test.mjs`: `isConfirmedFailure` — `blocked` и `disallowed` → да;
+- [X] T003 [P] Тест `tests/unit/sources-status.test.mjs`: `isConfirmedFailure` — `blocked` и `disallowed` → да;
   `failing` с 1–2 сбоями → нет, с 3 → да; `ok` → нет. Состояние для пользователей: `down` с `since` = `failing_since`;
   `collecting` — у ленты адаптера нет строки `feeds` или пуст `last_ok_at`, нет строки `sources` (до первого тика);
   сбоящий и ещё не прочитанный сайт — `down`, а не `collecting`; `ok` с `checkedAt` = `sources.last_ok_at`; порядок
   kufar, realt, domovita, moyareklama; в ответе нет `error_text`
-- [ ] T004 [P] Сквозной тест `tests/e2e/sources-status.e2e.mjs` (quickstart.md §2): `GET /api/sources` до первого
+- [X] T004 [P] Сквозной тест `tests/e2e/sources-status.e2e.mjs` (quickstart.md §2): `GET /api/sources` до первого
   тика — все `collecting`; после кругов всех лент — `ok` с `checkedAt`; один ответ 503 — по-прежнему `ok`; три подряд —
   `down` с `since`, и в тот же тик владельцу ушло сообщение о сбое; страница защиты — сразу `down`; участник без прав
   владельца получает то же; без `initData` — 401
-- [ ] T005 В `src/db/sources.js` — `isConfirmedFailure(row)` (data-model.md sources, «Состояние для пользователей»,
+- [X] T005 В `src/db/sources.js` — `isConfirmedFailure(row)` (data-model.md sources, «Состояние для пользователей»,
   `down`) и чистая функция `userSourcesStatus(sources, feeds, adapters, feedIdOf)` → `SourceStatus[]`
   (contracts/miniapp-api.md «Объекты»), адаптеры и `feedIdOf` передаются снаружи, как в `ensureStatements`. В
   `src/jobs/poll-feeds.js` `onFailure` решение «сообщить владельцу» — `isConfirmedFailure({ ...src, ...fields })`
   (FR-018: одно правило для владельца и пользователей); тесты 001 `tests/e2e/source-health.e2e.mjs` — зелёные
-- [ ] T006 `GET /api/sources` в `src/http/api.js` по contracts/miniapp-api.md «Методы»: `loadSourcesAndFeeds` из
+- [X] T006 `GET /api/sources` в `src/http/api.js` по contracts/miniapp-api.md «Методы»: `sourcesStatusRows` из
   `src/db/sources.js` + `userSourcesStatus(…, ADAPTERS, feedId)` из `src/sources/index.js`, названия — `SOURCE_TITLES`
   из `src/sources/titles.js`; для любого пользователя с доступом; `npm test` и T003, T004 — зелёные
 
@@ -86,19 +86,19 @@ description: "Задачи реализации: тип объекта, поня
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T007 [P] [US1] `tests/unit/criteria.test.mjs`: объявление с `kind = null` проходит любой выбор типов; группа
+- [X] T007 [P] [US1] `tests/unit/criteria.test.mjs`: объявление с `kind = null` проходит любой выбор типов; группа
   `house` пропускает `house` и `cottage`, но не `dacha`; поиск без поля `kinds` пропускает все типы; `matchesSearch`
   для уведомлений учитывает типы
-- [ ] T008 [P] [US1] Новый `tests/unit/validate.test.mjs`: `kinds` нет → `['house', 'dacha', 'part']`; порядок
+- [X] T008 [P] [US1] Новый `tests/unit/validate.test.mjs`: `kinds` нет → `['house', 'dacha', 'part']`; порядок
   приводится к постоянному; пустой список, не массив или неизвестное значение → `fields.kinds` «Выберите хотя бы один
   тип»
-- [ ] T009 [P] [US1] `tests/unit/format.test.mjs` и `tests/unit/listing-card.test.mjs`: уведомление начинается
+- [X] T009 [P] [US1] `tests/unit/format.test.mjs` и `tests/unit/listing-card.test.mjs`: уведомление начинается
   «Дача · <b>45 000 $</b> · дом 40 м² · участок 6 сот.», подписи всех четырёх типов, без типа — первая строка как в
   001 (contracts/telegram-bot.md); в `ListingCard` поле `kind` (`null`, если тип неизвестен)
-- [ ] T010 [P] [US1] `tests/unit/normalize.test.mjs`: `normalizeListing` переносит `kind`, значение вне четырёх
+- [X] T010 [P] [US1] `tests/unit/normalize.test.mjs`: `normalizeListing` переносит `kind`, значение вне четырёх
   типов → `null`; `tests/sources/{kufar,realt,domovita,moyareklama}.test.mjs` — у каждого объявления сохранённых
   страниц тип из четырёх (дописать, где такой проверки нет) — SC-001
-- [ ] T011 [P] [US1] Новый сквозной тест `tests/e2e/kinds.e2e.mjs` (quickstart.md §2): поиск с `kinds: ['house',
+- [X] T011 [P] [US1] Новый сквозной тест `tests/e2e/kinds.e2e.mjs` (quickstart.md §2): поиск с `kinds: ['house',
   'part']`; в ленте kufar после первого круга — новые подходящие дом (`kufarAd({ kind: '1' })`), дача (`'10'`) и
   полдома (`'15'`) → два `sendMessage`, первые слова «Дом · » и «Часть дома · », о даче — ничего, в `/listings` дачи
   нет; поиск без `kinds` сохранён со всеми тремя, `kinds: []` → 422 `fields.kinds`; дозаполнение — у дачи через SQL
@@ -107,26 +107,26 @@ description: "Задачи реализации: тип объекта, поня
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] `src/sources/normalize.js` `normalizeListing`: поле `kind` из `RawListing.kind` (data-model.md
+- [X] T012 [P] [US1] `src/sources/normalize.js` `normalizeListing`: поле `kind` из `RawListing.kind` (data-model.md
   `listings.kind`; значение не из `KINDS` → `null`, чтобы `CHECK` не сорвал пачку записей)
-- [ ] T013 [P] [US1] `src/db/listings.js`: `'kind'` в `LISTING_COLUMNS`, `kind` в выборке `existingStatement`;
+- [X] T013 [P] [US1] `src/db/listings.js`: `'kind'` в `LISTING_COLUMNS`, `kind` в выборке `existingStatement`;
   `src/jobs/ingest.js` `changedFields`: `kind` — по правилу обновления data-model.md `listings.kind` (сайт показал
   другой тип или у строки его не было)
-- [ ] T014 [P] [US1] `src/match/criteria.js`: `searchKinds(search)` (нет поля → все группы) и проверка группы типа в
+- [X] T014 [P] [US1] `src/match/criteria.js`: `searchKinds(search)` (нет поля → все группы) и проверка группы типа в
   `passesFilters` (data-model.md `searches.kinds`, «Правила»: `kind = null` проходит)
-- [ ] T015 [P] [US1] `src/match/validate.js` `validateCriteria`: `kinds` по contracts/miniapp-api.md «Правила
+- [X] T015 [P] [US1] `src/match/validate.js` `validateCriteria`: `kinds` по contracts/miniapp-api.md «Правила
   проверки» (data-model.md `searches.kinds`); `src/db/searches.js`: `kinds` в `criteriaColumns`, `INSERT` и `UPDATE`,
   `criteria.kinds` в `searchToApi`
-- [ ] T016 [US1] `src/db/listings.js` `searchListings`: условие `(l.kind IS NULL OR l.kind IN (…))` с типами выбранных
+- [X] T016 [US1] `src/db/listings.js` `searchListings`: условие `(l.kind IS NULL OR l.kind IN (…))` с типами выбранных
   групп (`KIND_GROUPS`) — только когда выбраны не все группы (research.md R2)
-- [ ] T017 [P] [US1] `src/db/notifications.js` `duePendingStatement` — `l.kind` в выборке; `src/match/format.js`:
+- [X] T017 [P] [US1] `src/db/notifications.js` `duePendingStatement` — `l.kind` в выборке; `src/match/format.js`:
   тип перед ценой в `notificationMessage` (`KIND_TITLES` и « · »), `kind` в `listingCard`
-- [ ] T018 [US1] `src/app/app.js.txt`: в форме блок «Тип» — три строки `ds-list-item` с `ds-list-item__body`
+- [X] T018 [US1] `src/app/app.js.txt`: в форме блок «Тип» — три строки `ds-list-item` с `ds-list-item__body`
   (`__title`, `__meta` — тексты «Типы в форме» из contracts/miniapp-api.md) и `ds-switch`, по умолчанию все; `collect()`
   отправляет `kinds`; без единого типа — ошибка «Выберите хотя бы один тип» в `ds-hint` под блоком до отправки и из
   `fields.kinds` ответа 422; в карточке — метка типа первой в `ds-chips` строки `ds-listing__top` (подписи типов —
   своя таблица, не путать с `KIND_TITLE` населённых пунктов)
-- [ ] T019 [US1] `npm test` и `npm run test:e2e` — зелёные (T007–T011 и тесты 001)
+- [X] T019 [US1] `npm test` и `npm run test:e2e` — зелёные (T007–T011 и тесты 001)
 
 **Checkpoint**: тип в уведомлении и карточке, фильтр по типу работает — US1 проверяется сама по себе
 

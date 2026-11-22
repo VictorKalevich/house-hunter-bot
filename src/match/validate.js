@@ -1,5 +1,5 @@
 // Проверка Criteria (contracts/miniapp-api.md «Правила проверки», data-model.md searches).
-import { MAX_KM, SOURCE_IDS } from '../config.js';
+import { KIND_GROUP_IDS, MAX_KM, SOURCE_IDS } from '../config.js';
 import { formatInt } from './format.js';
 
 export const DISTANCE_MODES = ['straight', 'road_center', 'road_exit'];
@@ -56,8 +56,15 @@ export function validateCriteria(body, { allowedModes = DISTANCE_MODES } = {}) {
   }
   sources = SOURCE_IDS.filter((s) => sources.includes(s));
 
+  let kinds = body.kinds ?? KIND_GROUP_IDS;
+  if (!Array.isArray(kinds) || kinds.length === 0 || kinds.some((k) => !KIND_GROUP_IDS.includes(k))) {
+    fields.kinds = 'Выберите хотя бы один тип';
+    kinds = KIND_GROUP_IDS;
+  }
+  kinds = KIND_GROUP_IDS.filter((k) => kinds.includes(k));
+
   if (Object.keys(fields).length) return { criteria: null, fields };
-  return { criteria: { settlementId, distanceMode, maxKm, priceUsd, houseM2, plotSotki, sources }, fields };
+  return { criteria: { settlementId, distanceMode, maxKm, priceUsd, houseM2, plotSotki, kinds, sources }, fields };
 }
 
 /** «Боровляны · до 30 км по дороге от выезда», без пункта — «Любое место · до 80 000 $». */

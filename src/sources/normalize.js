@@ -1,5 +1,5 @@
 // RawListing → строка listings (data-model.md listings, contracts/source-adapter.md «Нормализация»).
-import { NEW_BY_CREATED_MS } from '../config.js';
+import { KINDS, NEW_BY_CREATED_MS } from '../config.js';
 
 const BY_BOUNDS = { minLat: 50.5, maxLat: 57, minLon: 22.5, maxLon: 33.5 };
 
@@ -111,6 +111,7 @@ export function normalizeListing(raw, adapter, { now, rate, settlement = null })
     source: adapter.id,
     external_id: raw.externalId,
     url: raw.url,
+    kind: KINDS.includes(raw.kind) ? raw.kind : null,
     price_usd: priceUsd(raw, rate),
     price_byn: priceByn(raw),
     house_m2: round2(positive(raw.houseArea?.value)),

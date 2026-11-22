@@ -12,6 +12,14 @@
     ['moyareklama', 'moyareklama.by'],
   ];
   const SOURCE_TITLE = Object.fromEntries(SOURCES);
+  // Группы типов в поиске и тип объявления (specs/002-search-ux-improvements/contracts/miniapp-api.md «Тексты»).
+  const TYPES = [
+    ['house', 'Дом или коттедж', 'дом, усадьба, коттедж'],
+    ['dacha', 'Дача', 'дача, садовый домик'],
+    ['part', 'Часть дома или таунхаус', 'полдома, доля, таунхаус, дуплекс'],
+  ];
+  const TYPE_TITLE = Object.fromEntries(TYPES);
+  const LISTING_KIND = { house: 'Дом', cottage: 'Коттедж', dacha: 'Дача', part: 'Часть дома' };
   const MODES = [
     ['straight', 'По прямой от центра', 'Расстояние по прямой от центра населённого пункта до дома'],
     ['road_center', 'По дороге от центра', 'Длина самого быстрого пути на машине от центра'],
@@ -248,6 +256,7 @@
     const c = search ? search.criteria : {
       settlementId: null, distanceMode: 'straight', maxKm: null,
       priceUsd: { min: null, max: null }, houseM2: { min: null, max: null }, plotSotki: { min: null, max: null },
+      kinds: TYPES.map(([key]) => key),
       sources: SOURCES.map(([key]) => key),
     };
     let settlement = search ? search.settlement : null;
@@ -315,6 +324,19 @@
     const house = rangeField('Площадь дома', c.houseM2, 'м²');
     const plot = rangeField('Площадь участка', c.plotSotki, 'сот.');
 
+    // Тип
+    const kindInputs = {};
+    const kindsHint = h('p', { class: 'ds-hint' });
+    const types = h('div', { class: 'ds-list' }, TYPES.map(([key, title, hint]) => {
+      const input = h('input', { class: 'ds-switch__input', type: 'checkbox', checked: (c.kinds || []).includes(key) });
+      kindInputs[key] = input;
+      return h('label', { class: 'ds-list-item' },
+        h('span', { class: 'ds-list-item__body' },
+          h('span', { class: 'ds-list-item__title', text: title }),
+          h('span', { class: 'ds-list-item__meta', text: hint })),
+        h('span', { class: 'ds-switch' }, input, h('span', { class: 'ds-switch__track' })));
+    }));
+
     // Сайты
     const sourceInputs = {};
     const sitesHint = h('p', { class: 'ds-hint' });
@@ -330,6 +352,7 @@
       km.wrap.className = 'ds-affix';
       kmHint.textContent = 'Пусто — расстояние не ограничено';
       for (const r of [price, house, plot]) r.setError(null);
+      kindsHint.textContent = '';
       sitesHint.textContent = '';
     };
 
@@ -345,6 +368,7 @@
       if (fields.priceUsd) price.setError(fields.priceUsd);
       if (fields.houseM2) house.setError(fields.houseM2);
       if (fields.plotSotki) plot.setError(fields.plotSotki);
+      if (fields.kinds) kindsHint.textContent = fields.kinds;
       if (fields.sources) sitesHint.textContent = fields.sources;
       if (fields.distanceMode) toast(fields.distanceMode);
     };
@@ -356,6 +380,7 @@
       priceUsd: price.value(),
       houseM2: house.value(),
       plotSotki: plot.value(),
+      kinds: Object.keys(kindInputs).filter((key) => kindInputs[key].checked),
       sources: Object.keys(sourceInputs).filter((key) => sourceInputs[key].checked),
     });
 
@@ -366,6 +391,7 @@
       for (const [key, r] of [['priceUsd', criteria.priceUsd], ['houseM2', criteria.houseM2], ['plotSotki', criteria.plotSotki]]) {
         if (bad(r.min) || bad(r.max)) fields[key] = 'Введите число';
       }
+      if (criteria.kinds.length === 0) fields.kinds = 'Выберите хотя бы один тип';
       if (criteria.sources.length === 0) fields.sources = 'Выберите хотя бы один сайт';
       return fields;
     };
@@ -424,6 +450,7 @@
       h('div', { class: 'ds-card ds-stack' }, placeField, kmField),
       h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Как считать расстояние' }), modes),
       h('div', { class: 'ds-card ds-stack' }, price.field, house.field, plot.field),
+      h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Тип' }), types, kindsHint),
       h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Сайты' }), sites, sitesHint),
       saveButton,
     );
@@ -494,7 +521,9 @@
           h('div', null,
             h('div', { class: 'ds-listing__price', text: price }),
             alt ? h('div', { class: 'ds-listing__price-alt', text: alt }) : null),
-          h('div', { class: 'ds-chips' }, h('span', { class: 'ds-chip', text: SOURCE_TITLE[card.source] || card.source }))),
+          h('div', { class: 'ds-chips' },
+            LISTING_KIND[card.kind] ? h('span', { class: 'ds-chip', text: LISTING_KIND[card.kind] }) : null,
+            h('span', { class: 'ds-chip', text: SOURCE_TITLE[card.source] || card.source }))),
         h('div', { class: 'ds-listing__facts' },
           fact('Дом', card.houseM2 === null ? null : `${formatNum(card.houseM2)} м²`),
           fact('Участок', card.plotSotki === null ? null : `${card.plotSotki.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} сот.`),

@@ -13,13 +13,18 @@ const listing = (over = {}) => ({
 test('ListingCard: null-поля, расстояние, источник, дата', () => {
   const card = listingCard(listing({ house_m2: null, photo_url: null }), { km: 25.44, mode: 'straight', approx: true, fallback: false, pending: false });
   assert.deepEqual(card, {
-    source: 'kufar', url: 'https://re.kufar.by/vi/1', photoUrl: null,
+    source: 'kufar', url: 'https://re.kufar.by/vi/1', photoUrl: null, kind: null,
     priceUsd: 75000, priceByn: 245000, houseM2: null, plotSotki: 15,
     distance: { km: 25.4, mode: 'straight', approx: true, fallback: false, pending: false },
     place: 'д. Боровляны, Минский р-н', publishedAt: '2026-11-22T09:41:00.000Z',
   });
   assert.equal(listingCard(listing({ published_at: null }), null).publishedAt, '2026-11-22T09:45:00.000Z');
   assert.equal(listingCard(listing(), null).distance, null);
+});
+
+test('ListingCard: тип объекта (фича 002)', () => {
+  assert.equal(listingCard(listing({ kind: 'dacha' }), null).kind, 'dacha');
+  assert.equal(listingCard(listing({ kind: null }), null).kind, null);
 });
 
 test('ListingCard: дорожное расстояние считается или не построено', () => {
