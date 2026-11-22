@@ -177,6 +177,50 @@
     return `Первый круг ${where} занимает до получаса. Загляните позже — новые объявления придут сообщением.`;
   }
 
+  /** «14:05» по часам телефона; не сегодня — «21 нояб., 14:05». */
+  function clockTime(iso) {
+    const d = new Date(iso);
+    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString() ? time : `${shortDate(iso)}, ${time}`;
+  }
+
+  function downCard(s) {
+    const when = s.since ? ` с ${clockTime(s.since)}` : '';
+    return h('div', { class: 'ds-card ds-row' },
+      h('span', { class: 'ds-chip ds-chip--warning', text: 'Сбой' }),
+      h('p', { class: 'ds-grow ds-text-sm', text: `${s.title} не работает${when} — объявления с него придут, когда он заработает` }));
+  }
+
+  /** Подтверждённые сбои сайтов поиска — на итоге и над списком (FR-019). */
+  function searchDownCards(search, sources) {
+    if (!sources) return [];
+    return sources.filter((s) => s.state === 'down' && search.criteria.sources.includes(s.id)).map(downCard);
+  }
+
+  function checkedAgo(oldest) {
+    const min = Math.round((Date.now() - oldest) / 60000);
+    if (min < 1) return 'только что';
+    if (min === 1) return 'за последнюю минуту';
+    if (min < 60) return `за последние ${min} мин`;
+    return `за последние ${Math.round(min / 60)} ч`;
+  }
+
+  /** Строка о сайтах внизу «Мои поиски» (FR-017); состояние не загрузилось — строки нет. */
+  function sourcesStatusLine(sources) {
+    if (!sources) return null;
+    const parts = sources.filter((s) => s.state === 'down').map(downCard);
+    const collecting = sources.filter((s) => s.state === 'collecting').map((s) => s.title);
+    if (collecting.length) {
+      parts.push(h('p', { class: 'ds-hint', text: `Собираю объявления в первый раз: ${collecting.join(', ')} — это занимает до получаса` }));
+    }
+    if (!parts.length) {
+      const checks = sources.map((s) => Date.parse(s.checkedAt)).filter(Number.isFinite);
+      const text = checks.length ? `Все сайты работают · проверены ${checkedAgo(Math.min(...checks))}` : 'Все сайты работают';
+      parts.push(h('p', { class: 'ds-hint', text }));
+    }
+    return h('div', { class: 'ds-stack ds-stack--tight' }, parts);
+  }
+
   function showError(err) {
     if (err.status === 401) {
       show(empty('🔒', 'Откройте приложение из чата с ботом', 'Без Telegram приложение не знает, кто вы.'));
@@ -237,14 +281,15 @@
   async function showSearches() {
     setBack(null);
     show(spinner('Загружаем поиски…'));
-    const data = await api('GET', '/searches');
+    const [data, sources] = await Promise.all([api('GET', '/searches'), loadSources()]);
+    const status = sourcesStatusLine(sources);
     const hero = h('header', { class: 'ds-hero' },
       h('h1', { class: 'ds-hero__title', text: '🏡 Дом рядом' }),
       h('p', { class: 'ds-hero__text', text: 'Новые дома с участками с kufar.by, realt.by, domovita.by и moyareklama.by' }));
     const newButton = h('button', { class: 'ds-btn ds-btn--block', type: 'button', text: 'Новый поиск', onclick: () => go('#/search/new') });
 
     if (data.items.length === 0) {
-      show(hero, empty('🔍', 'Поисков пока нет', 'Создайте поиск — и бот напишет, как только появится подходящий дом.'), newButton);
+      show(...[hero, empty('🔍', 'Поисков пока нет', 'Создайте поиск — и бот напишет, как только появится подходящий дом.'), newButton, status].filter(Boolean));
       return;
     }
     const list = h('div', { class: 'ds-list' }, data.items.map((s) => h('button', {
@@ -256,7 +301,7 @@
     s.status === 'active'
       ? h('span', { class: 'ds-chip ds-chip--success', text: 'Активен' })
       : h('span', { class: 'ds-chip ds-chip--warning', text: 'Пауза' }))));
-    show(hero, h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Мои поиски' }), list), newButton);
+    show(...[hero, h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Мои поиски' }), list), newButton, status].filter(Boolean));
   }
 
   // ---------- Новый поиск / изменить поиск ----------
@@ -576,6 +621,7 @@
 
     show(
       h('div', { class: 'ds-row ds-row--between' }, h('p', { class: 'ds-title', text: search.title }), statusChip),
+      ...searchDownCards(search, sources),
       conditions,
       matches,
       h('div', { class: 'ds-list' }, h('label', { class: 'ds-list-item' },
@@ -695,13 +741,14 @@
       api('GET', `/searches/${id}`), api('GET', `/searches/${id}/listings?page=${page}`), loadSources(),
     ]);
     const title = h('p', { class: 'ds-title', text: search.title });
+    const downs = searchDownCards(search, sources);
     if (data.total === 0) {
       const collecting = collectingSites(search, sources);
       if (collecting.length) {
-        show(title, empty('⏳', COLLECTING_TITLE, collectingText(collecting)));
+        show(title, ...downs, empty('⏳', COLLECTING_TITLE, collectingText(collecting)));
         return;
       }
-      show(title, empty('🔍', 'Пока ничего не подходит', 'Попробуйте увеличить расстояние или цену — новые объявления придут сообщением.',
+      show(title, ...downs, empty('🔍', 'Пока ничего не подходит', 'Попробуйте увеличить расстояние или цену — новые объявления придут сообщением.',
         h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Изменить условия', onclick: () => go(`#/search/${id}/edit`) })));
       return;
     }
@@ -712,7 +759,7 @@
       h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: '‹ Назад', disabled: data.page <= 1, onclick: () => go(`#/search/${id}/listings?page=${data.page - 1}`) }),
       h('span', { class: 'ds-pager__info', text: `${from}–${to} из ${formatNum(data.total)}${data.totalApprox ? '+' : ''}` }),
       h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Дальше ›', disabled: data.page >= pages, onclick: () => go(`#/search/${id}/listings?page=${data.page + 1}`) }));
-    show(title, h('div', { class: 'ds-stack' }, data.items.map(listingCard)), pager);
+    show(title, ...downs, h('div', { class: 'ds-stack' }, data.items.map(listingCard)), pager);
   }
 
   // ---------- Запуск ----------

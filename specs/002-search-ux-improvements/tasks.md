@@ -272,14 +272,14 @@ description: "Задачи реализации: тип объекта, поня
 
 ### Implementation for User Story 6
 
-- [ ] T042 [US6] `src/app/app.js.txt`, «Мои поиски»: `GET /api/sources` параллельно с `GET /api/searches`; внизу
+- [X] T042 [US6] `src/app/app.js.txt`, «Мои поиски»: `GET /api/sources` параллельно с `GET /api/searches`; внизу
   строка по contracts/miniapp-api.md «Тексты»: каждый сайт в `down` — `ds-card` с `ds-chip--warning` и «<сайт> не
   работает с <время> — объявления с него придут, когда он заработает» (время по часам телефона, не сегодня — с
   датой); сайты в `collecting` — «Собираю объявления в первый раз: …»; все `ok` — `ds-hint` «Все сайты работают ·
   проверены за последние N мин» (N — по самой давней проверке); ошибка загрузки — строки нет
-- [ ] T043 [US6] `src/app/app.js.txt`, итог и список: строка о каждом сайте поиска в `down` (FR-019) — тот же вид,
+- [X] T043 [US6] `src/app/app.js.txt`, итог и список: строка о каждом сайте поиска в `down` (FR-019) — тот же вид,
   что на «Мои поиски»
-- [ ] T044 [US6] `npm test` и `npm run test:e2e` — зелёные
+- [X] T044 [US6] `npm test` и `npm run test:e2e` — зелёные
 
 **Checkpoint**: все истории готовы
 
@@ -289,16 +289,16 @@ description: "Задачи реализации: тип объекта, поня
 
 **Purpose**: документация, лимиты, итоговая проверка
 
-- [ ] T045 [P] `README.md`, «Как пользоваться»: типы объекта, итог поиска, ловушки формы, копирование поиска,
+- [X] T045 [P] `README.md`, «Как пользоваться»: типы объекта, итог поиска, ловушки формы, копирование поиска,
   состояние сайтов; в разделе выката — миграция `npx wrangler d1 migrations apply house-hunter --remote` перед
   `wrangler deploy`
-- [ ] T046 [P] Документы 001: в начале `specs/001-house-listing-alerts/contracts/miniapp-api.md` и
+- [X] T046 [P] Документы 001: в начале `specs/001-house-listing-alerts/contracts/miniapp-api.md` и
   `contracts/telegram-bot.md` — ссылка на изменения в `specs/002-search-ux-improvements/contracts/`; в
   `specs/001-house-listing-alerts/quickstart.md` §7 — шаг миграции 0002 перед `wrangler deploy`, если выкат идёт с
   ветки 002
-- [ ] T047 `npm run bench` — CPU тика в пределах 001 (Конституция, принцип IV); `tests/e2e/budget.e2e.mjs` — записи
+- [X] T047 `npm run bench` — CPU тика в пределах 001 (Конституция, принцип IV); `tests/e2e/budget.e2e.mjs` — записи
   D1 за сутки в пределах оценки data-model.md «Лимиты D1»
-- [ ] T048 Итог: `npm test`, `npm run test:e2e`, `npm run bench` — зелёные; quickstart.md §1–2 пройдены; проверка в
+- [X] T048 Итог: `npm test`, `npm run test:e2e`, `npm run bench` — зелёные; quickstart.md §1–2 пройдены; проверка в
   Telegram (quickstart.md §5) — после выката вместе с владельцем, в рамках T088 фичи 001
 
 ---

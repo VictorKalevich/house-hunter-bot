@@ -121,12 +121,17 @@ node scripts/setup-telegram.mjs                          # setWebhook с secret_
 
 **Не сделано — по порядку**
 
+0. Если выкат идёт с ветки `002-search-ux-improvements` (так решено, если 002 готова и тесты зелёные — строка фичи 002
+   в `CLAUDE.md`): сначала `git switch 002-search-ux-improvements`, `npm test` и `npm run test:e2e` — зелёные, затем
+   `npx wrangler d1 migrations apply house-hunter --remote` — применится `0002_kinds.sql` (два новых столбца, строк
+   почти не пишет; `0001` повторно не применяется). С ветки 001 этот шаг не нужен.
 1. Первый выкат — с секретами из файла: `npx wrangler deploy --secrets-file .dev.vars` (Wrangler 4.166 принимает
    `.env` и JSON; Worker'а ещё нет, поэтому `wrangler secret put` до выката не подходит). Адрес из вывода
    (`https://house-hunter-bot.<поддомен>.workers.dev`) → `vars.PUBLIC_URL` → `npx wrangler deploy` ещё раз (секреты
    сохраняются).
 2. `node scripts/setup-telegram.mjs --dry-run`, затем без `--dry-run`; ожидание — как в §5.
-3. Проверка §6 вместе с владельцем; итоги — в этот раздел; T088 отметить в tasks.md, строку фичи в `CLAUDE.md`
+3. Проверка §6 вместе с владельцем (при выкате с ветки 002 — и
+   [quickstart 002 §5](../002-search-ux-improvements/quickstart.md)); итоги — в этот раздел; T088 отметить в tasks.md, строку фичи в `CLAUDE.md`
    обновить; коммит.
 
 **Выкат не раньше 2026-11-23 00:00 UTC (03:00 по Минску) — лимит записей D1.** Справочник записал 89 988 строк

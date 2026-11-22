@@ -1,5 +1,9 @@
 # Контракт: HTTP API мини-приложения
 
+> Дополнен фичей 002: тип объекта, итог поиска, ловушки формы, метки «Новое», копирование поиска, состояние сайтов
+> для всех — [specs/002-search-ux-improvements/contracts/miniapp-api.md](../../002-search-ux-improvements/contracts/miniapp-api.md).
+> Где они расходятся, действует контракт 002.
+
 Мини-приложение Telegram (`GET /app`) обращается к Worker'у по JSON API на том же домене. Модель полей —
 [data-model.md](../data-model.md).
 
