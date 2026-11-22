@@ -109,13 +109,14 @@ node scripts/setup-telegram.mjs                          # setWebhook с secret_
 - `npx wrangler d1 migrations apply house-hunter --remote` — `0001_init.sql` применена.
 - `npx wrangler d1 execute house-hunter --remote --file seeds/settlements.sql` — справочник загружен:
   `SELECT COUNT(*) FROM settlements` = 22 497. Повторно не загружать: это ещё ~90 тыс. записей D1.
+- Бот создан в @BotFather: `@HouseHunterRBBot`, имя — в `vars.BOT_USERNAME` в `wrangler.jsonc`.
+- `.dev.vars` создан из `.dev.vars.example`, `WEBHOOK_SECRET` сгенерирован (32 случайных байта, base64url).
 
 **Не сделано — по порядку**
 
-1. Данные от владельца (§1): токен и имя бота от @BotFather, свой Telegram ID, ключ openrouteservice. Владелец сам
-   создаёт `.dev.vars` из `.dev.vars.example` и вписывает `BOT_TOKEN`, `OWNER_TELEGRAM_ID`, `ORS_API_KEY`; агент
-   дописывает `WEBHOOK_SECRET` (случайная строка из `A-Z a-z 0-9 _ -`). Секреты — не в чат и не в коммит. Имя бота
-   (не секрет) — в `vars.BOT_USERNAME` в `wrangler.jsonc`: оно уходит сайтам в `User-Agent`, с заглушкой не выкатывать.
+1. Данные от владельца (§1): владелец сам вписывает в `.dev.vars` `BOT_TOKEN`, `OWNER_TELEGRAM_ID`, `ORS_API_KEY`.
+   Секреты — не в чат и не в коммит. Первый токен бота попал в чат, поэтому его отзывают (`/revoke` в @BotFather)
+   и в `.dev.vars` вписывают новый.
 2. Первый выкат — с секретами из файла: `npx wrangler deploy --secrets-file .dev.vars` (Wrangler 4.166 принимает
    `.env` и JSON; Worker'а ещё нет, поэтому `wrangler secret put` до выката не подходит). Адрес из вывода
    (`https://house-hunter-bot.<поддомен>.workers.dev`) → `vars.PUBLIC_URL` → `npx wrangler deploy` ещё раз (секреты

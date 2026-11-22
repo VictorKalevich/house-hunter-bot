@@ -20,7 +20,7 @@
     { "type": "Text", "globs": ["**/*.css", "**/*.html", "**/*.txt"], "fallthrough": false }
   ],
   "vars": {
-    "BOT_USERNAME": "house_hunter_bot",
+    "BOT_USERNAME": "HouseHunterRBBot",
     "PUBLIC_URL": "https://house-hunter-bot.example.workers.dev"
   },
   "observability": {
