@@ -75,7 +75,7 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 
 | Ветка | Спецификация | Статус |
 |---|---|---|
-| `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | реализация готова: T001–T087, `npm test`, `test:e2e`, `bench` зелёные; идёт T088 — выкат и проверка на живом боте вместе с владельцем: база D1 создана и заполнена, дальше — данные бота от владельца и `wrangler deploy` не раньше 2026-11-23 00:00 UTC; где остановились и следующие шаги — `quickstart.md` §7 |
+| `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | реализация готова: T001–T087, `npm test`, `test:e2e`, `bench` зелёные; идёт T088 — выкат и проверка на живом боте вместе с владельцем: база D1 создана и заполнена, бот `@HouseHunterRBBot` и `.dev.vars` готовы, дальше — `wrangler deploy` не раньше 2026-11-23 00:00 UTC; где остановились и следующие шаги — `quickstart.md` §7 |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

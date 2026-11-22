@@ -111,23 +111,23 @@ node scripts/setup-telegram.mjs                          # setWebhook с secret_
   `SELECT COUNT(*) FROM settlements` = 22 497. Повторно не загружать: это ещё ~90 тыс. записей D1.
 - Бот создан в @BotFather: `@HouseHunterRBBot`, имя — в `vars.BOT_USERNAME` в `wrangler.jsonc`.
 - `.dev.vars` создан из `.dev.vars.example`, `WEBHOOK_SECRET` сгенерирован (32 случайных байта, base64url).
+- Владелец вписал в `.dev.vars` `BOT_TOKEN` (первый токен попал в чат и отозван, вписан новый), `OWNER_TELEGRAM_ID`,
+  `ORS_API_KEY`. Проверено без вывода значений: формат всех четырёх, `getMe` отвечает `@HouseHunterRBBot`, ключ ORS
+  строит маршрут.
 
 **Не сделано — по порядку**
 
-1. Данные от владельца (§1): владелец сам вписывает в `.dev.vars` `BOT_TOKEN`, `OWNER_TELEGRAM_ID`, `ORS_API_KEY`.
-   Секреты — не в чат и не в коммит. Первый токен бота попал в чат, поэтому его отзывают (`/revoke` в @BotFather)
-   и в `.dev.vars` вписывают новый.
-2. Первый выкат — с секретами из файла: `npx wrangler deploy --secrets-file .dev.vars` (Wrangler 4.166 принимает
+1. Первый выкат — с секретами из файла: `npx wrangler deploy --secrets-file .dev.vars` (Wrangler 4.166 принимает
    `.env` и JSON; Worker'а ещё нет, поэтому `wrangler secret put` до выката не подходит). Адрес из вывода
    (`https://house-hunter-bot.<поддомен>.workers.dev`) → `vars.PUBLIC_URL` → `npx wrangler deploy` ещё раз (секреты
    сохраняются).
-3. `node scripts/setup-telegram.mjs --dry-run`, затем без `--dry-run`; ожидание — как в §5.
-4. Проверка §6 вместе с владельцем; итоги — в этот раздел; T088 отметить в tasks.md, строку фичи в `CLAUDE.md`
+2. `node scripts/setup-telegram.mjs --dry-run`, затем без `--dry-run`; ожидание — как в §5.
+3. Проверка §6 вместе с владельцем; итоги — в этот раздел; T088 отметить в tasks.md, строку фичи в `CLAUDE.md`
    обновить; коммит.
 
 **Выкат не раньше 2026-11-23 00:00 UTC (03:00 по Минску) — лимит записей D1.** Справочник записал 89 988 строк
 (каждый пункт — строка и индексы) из 100 000 бесплатных в сутки на аккаунт; счётчик сбрасывается в 00:00 UTC. Бот с
 первым часом разогрева пишет ~20 тыс. строк в сутки (data-model.md «Лимиты D1», замер `budget.e2e`), то есть за
 остаток 22 ноября — около 10 тыс., впритык к лимиту: запросы к D1 начали бы отказывать до сброса. `wrangler deploy`
-сразу запускает cron, поэтому выкат — после сброса; `.dev.vars` и имя бота можно подготовить раньше. Счётчик
+сразу запускает cron, поэтому выкат — после сброса; `.dev.vars` и имя бота готовы. Счётчик
 `npx wrangler d1 info house-hunter` (`rows_written_24h`) отстаёт: сразу после загрузки показывал 0.
