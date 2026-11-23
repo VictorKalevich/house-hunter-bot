@@ -32,6 +32,7 @@ export const SOURCE_MIN_GAP_MS = MINUTE;
 export const FEED_JITTER_MS = 5 * MINUTE;
 export const ROBOTS_MAX_AGE_MS = 26 * HOUR;
 export const FAILS_TO_ALERT = 3;
+export const OKS_TO_RECOVER = 3;
 export const EMPTY_TO_FAIL = 3;
 export const BLOCKED_BACKOFF_HOURS = [1, 2, 4, 8, 24];
 

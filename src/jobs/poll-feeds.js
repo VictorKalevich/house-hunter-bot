@@ -1,6 +1,6 @@
 // Шаг тика «ленты»: contracts/source-adapter.md «Ошибки и состояние источника», принцип I.
 import {
-  BLOCKED_BACKOFF_HOURS, EMPTY_TO_FAIL, FEED_JITTER_MS, FETCH_TIMEOUT_MS, HOUR, MINUTE,
+  BLOCKED_BACKOFF_HOURS, EMPTY_TO_FAIL, FEED_JITTER_MS, FETCH_TIMEOUT_MS, HOUR, MINUTE, OKS_TO_RECOVER,
   ROBOTS_MAX_AGE_MS, SOURCE_MIN_GAP_MS, userAgent,
 } from '../config.js';
 import {
@@ -154,17 +154,23 @@ function httpText(res) {
   return `${res.status} ${res.statusText || REASON_PHRASES[res.status] || ''}`.trim();
 }
 
-/** Поля источника после успешного запроса и сообщение «снова работает». */
+/**
+ * Поля источника после успешного запроса. Сбой, о котором сообщили владельцу, закрывается («снова работает») только
+ * после OKS_TO_RECOVER успехов подряд: сайт, пропускающий редкие запросы, не шлёт пар «снова работает» / «отказал».
+ */
 async function onSuccess(ctx, src, extra = {}) {
   const { env, now } = ctx;
+  const oks = src.consecutive_ok + 1;
   const fields = {
-    state: 'ok', consecutive_failures: 0, error_kind: null, error_text: null, failing_since: null,
+    state: 'ok', consecutive_failures: 0, consecutive_ok: oks, error_kind: null, error_text: null,
     backoff_level: 0, next_check_at: null, last_ok_at: now, last_checked_at: now, ...extra,
   };
-  if (src.alerted_at !== null) {
+  if (src.alerted_at === null) {
+    fields.failing_since = null;
+  } else if (oks >= OKS_TO_RECOVER) {
     await sendOwnerAlert(env, recoveryText(src.id, src.failing_since, now));
     ctx.budget.use(1);
-    fields.alerted_at = null;
+    Object.assign(fields, { alerted_at: null, failing_since: null });
   }
   return fields;
 }
@@ -174,7 +180,7 @@ async function onFailure(ctx, src, kind, text) {
   const { env, now } = ctx;
   const failures = src.consecutive_failures + 1;
   const fields = {
-    consecutive_failures: failures, error_kind: kind === 'disallowed' ? null : kind, error_text: text.slice(0, 200),
+    consecutive_failures: failures, consecutive_ok: 0, error_kind: kind === 'disallowed' ? null : kind, error_text: text.slice(0, 200),
     failing_since: src.failing_since ?? now, last_checked_at: now,
   };
   let nextCheckHours = null;
