@@ -142,7 +142,8 @@ async function readPrefix(res, limit) {
 }
 
 function blockedResponse(res) {
-  if (res.status === 403 || res.status === 429) return true;
+  // 423 Locked — так отказывает защита domovita.by адресам Cloudflare (выкат 2026-11-23).
+  if (res.status === 403 || res.status === 423 || res.status === 429) return true;
   if (res.headers?.get('cf-mitigated')) return true;
   const head = (res.text ?? '').slice(0, 4000);
   return BLOCK_MARKERS.some((m) => head.includes(m));

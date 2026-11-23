@@ -83,6 +83,32 @@ test('кнопка «Проверить сейчас» → внеочередн�
   assert.equal((await realtState()).state, 'ok');
 });
 
+test('423 Locked без признаков защиты в теле — тоже отказ защиты: сообщение сразу, проверка через час', async () => {
+  h.sites.set('realt.by', (url) => (url.pathname === '/robots.txt' ? null : new Response('Locked', { status: 423 })));
+  const alertsBefore = realtAlerts().length;
+  await h.pollNow('realt');
+  await h.tick(2 * MINUTE);
+  const t0 = h.now;
+  const start = realtPages().length;
+  const src = await realtState();
+  assert.equal(src.state, 'blocked');
+  assert.equal(src.error_text, '423, страница защиты от ботов');
+  assert.equal(src.next_check_at, t0 + HOUR);
+  assert.equal(realtAlerts().length, alertsBefore + 1, 'сообщение с первого отказа');
+  assert.match(realtAlerts().at(-1).params.text, /^realt\.by отказал боту с .+ \(423, страница защиты от ботов\)\. Обходить защиту бот не будет; следующая проверка через 1 ч, дальше реже\.$/);
+
+  for (let i = 0; i < 11; i++) await h.tick(5 * MINUTE);
+  assert.equal(realtPages().length, start, 'за час к сайту не обращались');
+  await h.tick(HOUR - (h.now - t0));
+  assert.equal(realtPages().length, start + 1);
+  assert.equal(realtAlerts().length, alertsBefore + 1, 'за весь сбой одно сообщение');
+
+  h.sites.delete('realt.by');
+  await h.callback(OWNER, 'probe:realt');
+  await h.tick();
+  assert.equal((await realtState()).state, 'ok');
+});
+
 test('robots.txt закрыл адрес → disallowed и сообщение; к лентам больше не обращаемся', async () => {
   h.sites.set('realt.by', (url) => (url.pathname === '/robots.txt' ? new Response('User-agent: *\nDisallow: /sale/\n', { status: 200 }) : null));
   const daily = await h.daily(MINUTE);
