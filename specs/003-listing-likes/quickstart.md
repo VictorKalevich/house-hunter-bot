@@ -100,3 +100,16 @@ node scripts/setup-telegram.mjs                               # меню ком�
    - `SELECT status, COUNT(*) FROM price_alerts GROUP BY status` — нет зависших `sending`.
 7. **Лимиты** (SC-007): `npx wrangler d1 info house-hunter` — `rows_written_24h` в пределах оценки data-model.md 003;
    в `wrangler tail` нет `exceededCpu`.
+
+### Итоги выката 2026-11-23
+
+- Слияние `003-listing-likes` в `main`; миграция `0004_marks.sql` на рабочей базе (13 команд, без ошибок);
+  `wrangler deploy` — версия `ed917a8f`.
+- Живой Worker: скрипт мини-приложения содержит экраны `#/liked` и «Снято с сайта»; `GET /api/marks` и
+  `PUT /api/listings/{id}/mark` без подписи Telegram — 401 (маршруты на месте).
+- `wrangler tail`, первые 4 тика после выката: все `ok`, без исключений и `exceededCpu`, до 16 подзапросов, CPU —
+  медиана 21 мс, максимум 42 мс (как до 003). Лайков ещё нет — у realt и moyareklama `cards_next_at` через час, как
+  задумано; валюта продавца заполняется по мере обхода лент.
+- В это время kufar.by — 403 со страницей защиты (с 16:17, пауза и одно сообщение владельцу), domovita.by — 423 (с
+  11:45, пауза): бот защиту не обходит (принцип I).
+- Осталось вместе с владельцем — пункты 1–4 выше; пункты 5–7 — через сутки после первых лайков.
