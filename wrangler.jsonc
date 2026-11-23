@@ -21,7 +21,7 @@
   ],
   "vars": {
     "BOT_USERNAME": "HouseHunterRBBot",
-    "PUBLIC_URL": "https://house-hunter-bot.example.workers.dev"
+    "PUBLIC_URL": "https://house-hunter-bot.cycle-push.workers.dev"
   },
   "observability": {
     "enabled": true

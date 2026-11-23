@@ -78,8 +78,8 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 
 | Ветка | Спецификация | Статус |
 |---|---|---|
-| `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | реализация готова: T001–T087, `npm test`, `test:e2e`, `bench` зелёные; идёт T088 — выкат и проверка на живом боте вместе с владельцем: база D1 создана и заполнена, бот `@HouseHunterRBBot` и `.dev.vars` готовы, влита в `main` 2026-11-22 вместе с 002; дальше — `wrangler deploy` из `main` не раньше 2026-11-23 00:00 UTC, сначала миграция 0002; где остановились и следующие шаги — `quickstart.md` §7, шаг 0 |
-| `002-search-ux-improvements` | `specs/002-search-ux-improvements/` | реализация готова: T001–T048 (тип объекта, итог поиска, ловушки формы, новое/поднятое, сайты в поиске и копия, состояние сайтов для всех), `npm test` (195), `test:e2e` (60), `bench` зелёные; влита в `main` 2026-11-22. Выкат — вместе с T088 фичи 001 из `main`: `npx wrangler d1 migrations apply house-hunter --remote` (`0002_kinds.sql`) перед `wrangler deploy`; проверка в Telegram — `quickstart.md` §5 в рамках T088 |
+| `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | реализация готова: T001–T087, `npm test`, `test:e2e`, `bench` зелёные; влита в `main` 2026-11-22 вместе с 002; идёт T088: 2026-11-23 выкачена из `main` (миграция 0002, секреты, webhook) на `https://house-hunter-bot.cycle-push.workers.dev`, бот `@HouseHunterRBBot` отвечает; осталась проверка в Telegram вместе с владельцем — `quickstart.md` §6 и 002 §5; где остановились — `quickstart.md` §7 |
+| `002-search-ux-improvements` | `specs/002-search-ux-improvements/` | реализация готова: T001–T048 (тип объекта, итог поиска, ловушки формы, новое/поднятое, сайты в поиске и копия, состояние сайтов для всех), `npm test` (195), `test:e2e` (60), `bench` зелёные; влита в `main` 2026-11-22, выкачена 2026-11-23 вместе с 001 (`0002_kinds.sql` применена); проверка в Telegram — `quickstart.md` §5 в рамках T088 |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
