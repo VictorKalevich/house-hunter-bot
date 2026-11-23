@@ -1,11 +1,12 @@
 // data-model.md listings; список объявлений поиска — contracts/miniapp-api.md «Список объявлений».
-import { KIND_GROUP_IDS, KIND_GROUPS, LIST_MAX_ROWS, LIST_PAGE_SIZE, LISTING_TTL_MS } from '../config.js';
+import { CARD_CHECK_MS, KIND_GROUP_IDS, KIND_GROUPS, LIST_MAX_ROWS, LIST_PAGE_SIZE, LISTING_TTL_MS } from '../config.js';
 import { boundsAround, haversineKm } from '../geo/haversine.js';
 import { passesFilters, searchKinds } from '../match/criteria.js';
 import { roadDistance } from '../match/distance.js';
 
 const LISTING_COLUMNS = [
-  'source', 'external_id', 'url', 'kind', 'price_usd', 'price_byn', 'house_m2', 'plot_sotki', 'lat', 'lon',
+  'source', 'external_id', 'url', 'kind', 'price_usd', 'price_byn', 'price_amount', 'price_currency', 'house_m2',
+  'plot_sotki', 'lat', 'lon',
   'geo_approx', 'geo_key', 'settlement_id', 'place_text', 'photo_url', 'published_at', 'site_created_at', 'is_new',
   'sort_at', 'first_seen_at', 'last_seen_at', 'match_state', 'needs_detail',
 ];
@@ -13,7 +14,8 @@ const LISTING_COLUMNS = [
 export function existingStatement(db, source, externalIds) {
   return db
     .prepare(
-      `SELECT id, source, external_id, kind, price_usd, price_byn, house_m2, plot_sotki, lat, last_seen_at
+      `SELECT id, source, external_id, kind, price_usd, price_byn, price_amount, price_currency, house_m2, plot_sotki, lat,
+              last_seen_at, gone_at
        FROM listings WHERE source = ? AND external_id IN (${externalIds.map(() => '?').join(',')})`,
     )
     .bind(source, ...externalIds);
@@ -33,6 +35,26 @@ export function updateListingStatement(db, id, fields) {
   return db
     .prepare(`UPDATE listings SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`)
     .bind(...keys.map((k) => fields[k]), id);
+}
+
+/**
+ * Понравившееся объявление сайта, чью страницу пора проверить: сутки без проверки и без выдачи, самые давние
+ * проверки первыми (specs/003-listing-likes/data-model.md listings, «Кого проверять»). Вместе — курс для цен в рублях.
+ */
+export function dueCard(db, source, now) {
+  return db
+    .prepare(
+      `SELECT l.id, l.source, l.external_id, l.url, l.kind, l.price_amount, l.price_currency, l.price_usd, l.price_byn,
+              l.house_m2, l.plot_sotki, l.lat, l.gone_at,
+              (SELECT usd_byn FROM rates ORDER BY date DESC LIMIT 1) AS rate
+       FROM marks m JOIN listings l ON l.id = m.listing_id
+       WHERE m.kind = 'like' AND l.source = ? AND COALESCE(l.checked_at, 0) < ? AND l.last_seen_at < ?
+       GROUP BY l.id
+       ORDER BY COALESCE(l.checked_at, 0)
+       LIMIT 1`,
+    )
+    .bind(source, now - CARD_CHECK_MS, now - CARD_CHECK_MS)
+    .first();
 }
 
 /** Самое раннее новое объявление, которому нужна карточка (координаты). */
@@ -103,6 +125,11 @@ export async function searchListings(db, search, { settlement, radiusKm = 0, pag
       select += ', d.road_center_km AS d_center, d.road_exit_km AS d_exit, d.status AS d_status';
     }
   }
+  // Отметка владельца поиска; скрытые им не входят ни в страницу, ни в total (research.md 003 R4).
+  from += ' LEFT JOIN marks m ON m.user_id = ? AND m.listing_id = l.id';
+  joinParams.push(search.user_id);
+  select += ', m.kind AS mark';
+  where.push("(m.kind IS NULL OR m.kind <> 'hide')");
   const { results } = await db
     .prepare(`SELECT ${select} FROM ${from} WHERE ${where.join(' AND ')} ORDER BY l.sort_at DESC LIMIT ${LIST_MAX_ROWS}`)
     .bind(...joinParams, ...params)

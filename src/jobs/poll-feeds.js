@@ -1,23 +1,27 @@
 // Шаг тика «ленты»: contracts/source-adapter.md «Ошибки и состояние источника», принцип I.
 import {
-  BLOCKED_BACKOFF_HOURS, EMPTY_TO_FAIL, FEED_JITTER_MS, FETCH_TIMEOUT_MS, HOUR, MINUTE, OKS_TO_RECOVER,
-  ROBOTS_MAX_AGE_MS, SOURCE_MIN_GAP_MS, userAgent,
+  BLOCKED_BACKOFF_HOURS, CARD_GAP_MS, CARD_IDLE_MS, EMPTY_TO_FAIL, FEED_JITTER_MS, FETCH_TIMEOUT_MS, HOUR, MINUTE,
+  OKS_TO_RECOVER, ROBOTS_MAX_AGE_MS, SOURCE_MIN_GAP_MS, userAgent,
 } from '../config.js';
 import {
   claimSite, ensureStatements, isConfirmedFailure, loadSourcesAndFeeds, updateSourceStatement,
 } from '../db/sources.js';
 import { updateFeedStatement } from '../db/feeds.js';
-import { pendingDetail, detailResultStatement } from '../db/listings.js';
+import { dueCard, pendingDetail, detailResultStatement, updateListingStatement } from '../db/listings.js';
+import { insertForLikesStatement } from '../db/price-alerts.js';
+import { priceChange } from '../match/price-change.js';
 import { ADAPTERS, feedId } from '../sources/index.js';
+import { normalizeListing } from '../sources/normalize.js';
 import { isAllowed, parseRobots } from '../sources/robots.js';
 import { failureAlertText, recoveryText, sendOwnerAlert } from '../telegram/owner-alerts.js';
+import { changedFields } from './ingest.js';
 
 const FAILING_RETRY_MS = 5 * MINUTE;
 const PREV_IDS_MAX = 300;
 const BLOCK_MARKERS = ['Just a moment...', 'cf-browser-verification', 'challenge-platform', 'cf-chl-', 'Attention Required!', 'captcha'];
 const REASON_PHRASES = { 500: 'Internal Server Error', 502: 'Bad Gateway', 503: 'Service Unavailable', 504: 'Gateway Timeout' };
 
-/** Работа для сайта в этом тике: robots.txt, карточка объявления или страница ленты. */
+/** Работа для сайта в этом тике: robots.txt, карточка объявления, страница понравившегося или страница ленты. */
 function robotsDue(src, now) {
   return src.robots_checked_at === null || src.robots_checked_at < now - ROBOTS_MAX_AGE_MS;
 }
@@ -61,6 +65,13 @@ export async function pollFeedsStep(ctx) {
       const detail = await pendingDetail(db, adapter.id);
       if (detail) work = { ...plan, kind: 'detail', listing: detail, cost: 1 };
     }
+    // Страница понравившегося — впереди ленты, не чаще раза в CARD_GAP_MS на сайт (specs/003-listing-likes R7).
+    if (work.kind === 'feed' && typeof adapter.cardRequest === 'function' && src.state !== 'blocked'
+      && (src.cards_next_at ?? 0) <= now) {
+      const listing = await dueCard(db, adapter.id, now);
+      if (listing) work = { ...plan, kind: 'card', listing, cost: adapter.cardCost ?? 1 };
+      else statements.push(updateSourceStatement(db, src.id, { cards_next_at: now + CARD_IDLE_MS }));
+    }
     if (work.kind === 'feed') {
       if (!work.feedRow) continue;
       const feed = adapter.feeds.find((f) => feedId(adapter, f) === work.feedRow.id);
@@ -86,6 +97,7 @@ export async function pollFeedsStep(ctx) {
     let outcome;
     if (work.kind === 'robots') outcome = await doRobots(ctx, work);
     else if (work.kind === 'detail') outcome = await doDetail(ctx, work);
+    else if (work.kind === 'card') outcome = await doCard(ctx, work);
     else outcome = await doFeed(ctx, work);
     statements.push(...outcome.statements);
     report.push(outcome.report);
@@ -216,6 +228,7 @@ function urlsToCheck(adapter, src) {
     if (feed.maxPages > 1) urls.push(adapter.pageRequest(feed, 2, 'CURSOR', state).url);
   }
   if (typeof adapter.detailRequest === 'function') urls.push(adapter.detailRequest('1').url);
+  if (adapter.cardSample) urls.push(adapter.cardSample);
   return [...new Set(urls)];
 }
 
@@ -290,6 +303,53 @@ async function doDetail(ctx, { adapter, src, listing }) {
     statements: [detailResultStatement(db, listing.id, coords)],
     report: { ...report, result: coords ? 'coords' : res.error ? 'error' : `no-coords ${res.status}` },
   };
+}
+
+// ---------- страница понравившегося объявления ----------
+
+/**
+ * Суточная проверка страницы (specs/003-listing-likes/contracts/source-adapter.md «Ошибки проверки страницы»):
+ * снято — gone_at; на месте — check_ok_at, цена и площади (+ сообщения о цене); отказ защиты — источник blocked;
+ * прочие сбои — только checked_at.
+ */
+async function doCard(ctx, { adapter, src, listing }) {
+  const { db, env, now } = ctx;
+  const res = await fetchSite(env, { accept: 'text/html', ...adapter.cardRequest(listing) });
+  const report = { source: adapter.id, kind: 'card', id: listing.id };
+  const finish = (fields, sourceFields, result, extra = []) => ({
+    statements: [
+      updateListingStatement(db, listing.id, { checked_at: now, ...fields }),
+      ...extra,
+      updateSourceStatement(db, src.id, { cards_next_at: now + CARD_GAP_MS, ...sourceFields }),
+    ],
+    report: { ...report, result },
+  });
+  const gone = { gone_at: listing.gone_at ?? now };
+
+  if (res.error) return finish({}, {}, 'error');
+  if (res.status === 404 || res.status === 410) return finish(gone, {}, 'gone');
+  if (res.status !== 200 && blockedResponse(res)) {
+    return finish({}, await onFailure(ctx, src, 'blocked', `${httpText(res)}, страница защиты от ботов`), 'blocked');
+  }
+  if (res.status !== 200) return finish({}, {}, `http ${res.status}`);
+  let card = null;
+  try {
+    card = adapter.parseCard(res.text);
+  } catch {
+    card = null;
+  }
+  if (!card) {
+    if (blockedResponse(res)) return finish({}, await onFailure(ctx, src, 'blocked', '200, страница защиты от ботов'), 'blocked');
+    return finish({}, {}, 'unparsed');
+  }
+  if (card.gone) return finish(gone, {}, 'gone');
+
+  const raw = { ...card, externalId: listing.external_id, url: listing.url, coords: null, place: null };
+  const row = normalizeListing(raw, adapter, { now, rate: listing.rate });
+  const fields = row ? changedFields(listing, row, raw) : {};
+  const change = priceChange(listing, { ...listing, ...fields });
+  const alerts = change ? [insertForLikesStatement(db, listing.id, change, now)] : [];
+  return finish({ check_ok_at: now, gone_at: null, ...fields }, {}, change ? 'price' : 'ok', alerts);
 }
 
 // ---------- страница ленты ----------

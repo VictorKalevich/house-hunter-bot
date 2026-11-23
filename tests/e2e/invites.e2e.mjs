@@ -32,7 +32,7 @@ test('приглашение → доступ и поиск', async () => {
   await h.message(MEMBER, `/start ${link}`);
   const welcome = h.sent(MEMBER.id).at(-1).params;
   assert.match(welcome.text, /^Добро пожаловать! Владелец пригласил вас в бота\./);
-  assert.deepEqual(welcome.reply_markup.inline_keyboard.flat().map((b) => b.text), ['Новый поиск', 'Мои поиски']);
+  assert.deepEqual(welcome.reply_markup.inline_keyboard.flat().map((b) => b.text), ['Новый поиск', 'Мои поиски', 'Понравившиеся']);
   const user = await h.first('SELECT role, access, invited_by FROM users WHERE telegram_id = ?', MEMBER.id);
   assert.deepEqual({ ...user }, { role: 'member', access: 'active', invited_by: OWNER.id });
   assert.equal((await h.first('SELECT used_by FROM invites')).used_by, MEMBER.id);

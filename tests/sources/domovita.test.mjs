@@ -15,7 +15,7 @@ const PAGES = [[gomel, 'gomelskaya-oblast'], [brest, 'brestskaya-oblast'], [mins
 
 const KINDS = new Set(['house', 'dacha', 'cottage', 'part']);
 const KEYS = [
-  'externalId', 'url', 'kind', 'paid', 'price', 'priceUsd', 'priceByn', 'houseArea', 'plotArea', 'coords', 'place',
+  'externalId', 'url', 'kind', 'paid', 'price', 'priceCurrency', 'priceUsd', 'priceByn', 'houseArea', 'plotArea', 'coords', 'place',
   'publishedAt', 'siteCreatedAt', 'photoUrl',
 ].sort();
 const PLACEHOLDERS = ['+375 00 000-00-00', 'seller@example.com', 'Продавец'];
@@ -97,6 +97,7 @@ test('первое объявление страницы разобрано то
     kind: 'house',
     paid: false,
     price: { amount: 37800, currency: 'USD' },
+    priceCurrency: null,
     priceUsd: 37800,
     priceByn: 113286.6,
     houseArea: { value: 74.9, unit: 'm2' },

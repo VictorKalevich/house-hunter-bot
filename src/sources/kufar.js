@@ -104,6 +104,10 @@ function toListing(ad) {
   const region = text(params.get('region')?.vl) ?? fromAddress.region;
 
   const priceUsd = cents(ad.price_usd);
+  const priceByn = cents(ad.price_byn);
+  // Валюта продавца (specs/003-listing-likes/contracts/source-adapter.md): суммы в евро в выдаче нет.
+  const currency = ad.currency === 'BYR' ? 'BYN' : ad.currency === 'USD' ? 'USD' : null;
+  const sellerAmount = currency === 'BYN' ? priceByn : currency === 'USD' ? priceUsd : null;
   const houseArea = positive(params.get('size')?.v);
   const plotArea = positive(params.get('size_area')?.v);
   const photoPath = Array.isArray(ad.images) ? text(ad.images[0]?.path) : null;
@@ -113,9 +117,12 @@ function toListing(ad) {
     url,
     kind,
     paid: ad.paid_services?.polepos === true,
-    price: priceUsd === null ? null : { amount: priceUsd, currency: 'USD' },
+    price: sellerAmount !== null
+      ? { amount: sellerAmount, currency }
+      : priceUsd === null ? null : { amount: priceUsd, currency: 'USD' },
+    priceCurrency: sellerAmount !== null ? currency : null,
     priceUsd,
-    priceByn: cents(ad.price_byn),
+    priceByn,
     houseArea: houseArea === null ? null : { value: houseArea, unit: 'm2' },
     plotArea: plotArea === null ? null : { value: plotArea, unit: 'sotki' },
     coords: toCoords(params.get('coordinates')?.v),

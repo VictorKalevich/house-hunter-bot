@@ -15,7 +15,7 @@ const raw2 = JSON.parse(page2);
 
 const KINDS = new Set(['house', 'dacha', 'cottage', 'part']);
 const KEYS = [
-  'externalId', 'url', 'kind', 'paid', 'price', 'priceUsd', 'priceByn', 'houseArea', 'plotArea', 'coords', 'place',
+  'externalId', 'url', 'kind', 'paid', 'price', 'priceCurrency', 'priceUsd', 'priceByn', 'houseArea', 'plotArea', 'coords', 'place',
   'publishedAt', 'siteCreatedAt', 'photoUrl',
 ].sort();
 
@@ -72,7 +72,8 @@ test('первое объявление page1 разобрано точно', ()
     url: 'https://re.kufar.by/vi/1096499881',
     kind: 'house',
     paid: false,
-    price: { amount: 75476.74, currency: 'USD' },
+    price: { amount: 226000, currency: 'BYN' },
+    priceCurrency: 'BYN',
     priceUsd: 75476.74,
     priceByn: 226000,
     houseArea: { value: 89.6, unit: 'm2' },
@@ -255,4 +256,20 @@ test('описание источника', () => {
     maxPages: 3,
     cost: 2,
   });
+});
+
+test('валюта продавца: BYR → BYN с суммой в рублях, USD → USD, евро — нет (фича 003)', () => {
+  const { items } = parse(read('page1.json'));
+  const ads = JSON.parse(read('page1.json')).ads;
+  for (const item of items) {
+    const ad = ads.find((a) => String(a.ad_id) === item.externalId);
+    const currency = { BYR: 'BYN', USD: 'USD' }[ad.currency] ?? null;
+    const amount = currency === 'BYN' ? item.priceByn : currency === 'USD' ? item.priceUsd : null;
+    const want = amount === null ? null : currency;
+    assert.equal(item.priceCurrency, want, item.externalId);
+    if (want === 'BYN') assert.deepEqual(item.price, { amount: item.priceByn, currency: 'BYN' });
+    if (want === 'USD') assert.deepEqual(item.price, { amount: item.priceUsd, currency: 'USD' });
+    if (want === null && item.priceUsd !== null) assert.deepEqual(item.price, { amount: item.priceUsd, currency: 'USD' });
+  }
+  assert.ok(items.some((i) => i.priceCurrency === null), 'на странице есть цена в евро');
 });

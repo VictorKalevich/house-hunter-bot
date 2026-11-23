@@ -149,6 +149,7 @@ function parseItem(fragment) {
     kind,
     paid: /\bmaxi\b/.test(open) || /class="[^"]*\bpremium\b/.test(title[1]),
     price: price ? { amount: price, currency: 'BYN' } : null,
+    priceCurrency: price ? 'BYN' : null,
     priceUsd: null,
     priceByn: price,
     houseArea,
@@ -245,6 +246,37 @@ export default {
   detailRequest(item) {
     const id = typeof item === 'object' && item !== null ? item.externalId : item;
     return { url: `${ORIGIN}/single/ad/${id}`, accept: 'text/html' };
+  },
+
+  /** Страница объявления для проверки понравившихся — та же, что ради координат. */
+  cardRequest(listing) {
+    return { url: `${ORIGIN}/single/ad/${listing.external_id}`, accept: 'text/html' };
+  },
+  cardSample: `${ORIGIN}/single/ad/1`,
+  cardCost: 1,
+
+  /**
+   * Цена — `<div class="price">`, площади — из `<title>` разбором заголовка выдачи; контакты не читаются.
+   * Страница «Ошибка 404» сайта — снято. Страница выдачи, защиты или без узнаваемого заголовка → null.
+   * @param {string} body
+   */
+  parseCard(body) {
+    const html = String(body ?? '');
+    if (BLOCKED.test(html.slice(0, 20_000)) || html.search(ITEM_START) >= 0) return null;
+    const title = text(html.match(/<title>([\s\S]*?)<\/title>/)?.[1] ?? '').split(' – ')[0];
+    if (/Ошибка 404/.test(title)) return { gone: true };
+    const { kind, houseArea, plotArea } = parseTitle(title);
+    if (!kind) return null;
+    const price = parsePrice(text(html.match(/<div class="price">([\s\S]*?)<\/div>/)?.[1] ?? ''));
+    return {
+      gone: false,
+      price: price ? { amount: price, currency: 'BYN' } : null,
+      priceCurrency: price ? 'BYN' : null,
+      priceUsd: null,
+      priceByn: price,
+      houseArea,
+      plotArea,
+    };
   },
 
   /** Только `input.ads_geo_lat`/`ads_geo_lng`; контакты карточки не читаются. @param {string} body */

@@ -87,7 +87,7 @@ function readPrice(o) {
   let price = null;
   if (amount && currency) price = { amount, currency };
   else if (priceUsd) price = { amount: priceUsd, currency: 'USD' };
-  return { price, priceUsd, priceByn };
+  return { price, priceCurrency: amount && currency ? currency : null, priceUsd, priceByn };
 }
 
 function readCoords(location) {
@@ -142,6 +142,25 @@ function toListing(o, feed) {
   };
 }
 
+function area(value, unit) {
+  const v = positive(value);
+  return v ? { value: v, unit } : null;
+}
+
+/**
+ * Страница объявления (specs/003-listing-likes/contracts/source-adapter.md): `pageProps.object` — цена и площади,
+ * `archive` — снято; страница 404 сайта (`page: '/404'`, сайт отдаёт её с кодом 200) — снято.
+ */
+function parseCard(body) {
+  const data = readNextData(body);
+  if (!data) return null;
+  if (data.page === '/404') return { gone: true };
+  const o = data.props?.pageProps?.object;
+  if (!o || typeof o !== 'object' || o.code == null) return null;
+  if (o.archive) return { gone: true };
+  return { gone: false, ...readPrice(o), houseArea: area(o.areaTotal, 'm2'), plotArea: area(o.areaLand, 'sotki') };
+}
+
 export default {
   id: 'realt',
   title: 'realt.by',
@@ -166,4 +185,12 @@ export default {
     const items = wrongSection ? [] : objects.map((o) => toListing(o, feed)).filter(Boolean);
     return { items, nextCursor: null, total, looksValid: true, wrongSection, state: null };
   },
+
+  /** Адрес страницы на сайте зависит от области и раздела — берётся из listings.url. */
+  cardRequest(listing) {
+    return { url: listing.url, accept: 'text/html' };
+  },
+  cardSample: `${ORIGIN}/sale-cottages/object/1/`,
+  cardCost: 2,
+  parseCard,
 };

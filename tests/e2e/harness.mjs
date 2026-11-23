@@ -87,7 +87,8 @@ export function kufarAd(o = {}) {
     ad_parameters: params,
     account_parameters: [{ pl: 'Адрес', vl: '', p: 'address', v: o.address ?? 'Центральная ул, деревня Тестовая, Минский район, Минская область' }],
     price_usd: o.priceUsd === null ? '0' : String(Math.round((o.priceUsd ?? 70_000) * 100)),
-    price_byn: o.priceUsd === null ? '0' : String(Math.round((o.priceUsd ?? 70_000) * 300)),
+    price_byn: o.priceUsd === null ? '0' : String(Math.round(o.priceByn !== undefined ? o.priceByn * 100 : (o.priceUsd ?? 70_000) * 300)),
+    currency: o.currency,
     paid_services: { polepos: Boolean(o.paid) },
     list_time: o.listTime ?? new Date().toISOString(),
     images: [],
@@ -328,11 +329,12 @@ export async function createHarness({ only = null } = {}) {
     message: { message_id: h.updateId, from: user, chat: { id: user.id, type: 'private' }, date: Math.floor(Date.now() / 1000), text },
   });
 
-  h.callback = (user, data) => h.webhook({
+  /** Нажатие кнопки под сообщением messageId; date = 0 — сообщение недоступно (InaccessibleMessage). */
+  h.callback = (user, data, { messageId = 1, date = Math.floor(Date.now() / 1000) } = {}) => h.webhook({
     update_id: h.updateId++,
     callback_query: {
       id: String(h.updateId), from: user, data, chat_instance: '1',
-      message: { message_id: 1, chat: { id: user.id, type: 'private' }, date: Math.floor(Date.now() / 1000), text: 'меню' },
+      message: { message_id: messageId, chat: { id: user.id, type: 'private' }, date, text: 'меню' },
     },
   });
 

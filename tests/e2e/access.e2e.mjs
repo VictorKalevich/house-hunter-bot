@@ -36,8 +36,9 @@ test('владелец → главное меню с кнопками влад�
   assert.equal(msg.params.parse_mode, 'HTML');
   assert.match(msg.params.text, /OpenStreetMap/);
   const buttons = msg.params.reply_markup.inline_keyboard.flat();
-  assert.deepEqual(buttons.map((b) => b.text), ['Новый поиск', 'Мои поиски', 'Пригласить', 'Пользователи', 'Источники']);
+  assert.deepEqual(buttons.map((b) => b.text), ['Новый поиск', 'Мои поиски', 'Понравившиеся', 'Пригласить', 'Пользователи', 'Источники']);
   assert.equal(buttons[0].web_app.url, 'https://bot.e2e.test/app#/search/new');
+  assert.equal(buttons[2].web_app.url, 'https://bot.e2e.test/app#/liked');
   const owner = await h.first('SELECT role, access FROM users WHERE telegram_id = ?', OWNER.id);
   assert.deepEqual({ ...owner }, { role: 'owner', access: 'active' });
 });

@@ -55,7 +55,10 @@ test('без расстояния: только подходящие (в том 
   for (let i = 1; i < items.length; i++) assert.ok(sortAt.get(items[i - 1].url) >= sortAt.get(items[i].url), 'от новых к старым');
 
   const card = items[0];
-  assert.deepEqual(Object.keys(card).sort(), ['createdAt', 'distance', 'houseM2', 'isNew', 'kind', 'photoUrl', 'place', 'plotSotki', 'priceByn', 'priceUsd', 'publishedAt', 'source', 'url'].sort());
+  assert.deepEqual(Object.keys(card).sort(), ['createdAt', 'distance', 'houseM2', 'id', 'isNew', 'kind', 'mark', 'photoUrl', 'place', 'plotSotki', 'priceByn', 'priceUsd', 'publishedAt', 'siteStatus', 'source', 'url'].sort());
+  assert.ok(Number.isInteger(card.id));
+  assert.equal(card.mark, null);
+  assert.equal(card.siteStatus, null);
   assert.ok(['house', 'cottage', 'dacha', 'part'].includes(card.kind), card.kind);
   assert.equal(card.distance, null);
   assert.ok(['kufar', 'realt'].includes(card.source));

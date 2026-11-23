@@ -52,6 +52,9 @@ const CASES = [
   pageCase(moyareklama, 'moyareklama/subsection.html', 'gomel-district', 1),
   // Карточка объявления (doDetail) стоит 1 единицу.
   { adapter: 'moyareklama', file: 'moyareklama/card.html', what: 'parseDetail', cost: 1, run: (body) => moyareklama.parseDetail(body) },
+  // Страница понравившегося (работа card) стоит cardCost адаптера (specs/003-listing-likes/contracts/source-adapter.md).
+  { adapter: 'realt', file: 'realt/card.html', what: 'parseCard', cost: realt.cardCost, run: (body) => realt.parseCard(body) },
+  { adapter: 'moyareklama', file: 'moyareklama/card.html', what: 'parseCard', cost: moyareklama.cardCost, run: (body) => moyareklama.parseCard(body) },
 ];
 
 const median = (xs) => {

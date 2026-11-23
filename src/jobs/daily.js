@@ -1,5 +1,5 @@
 // Суточные задачи (cron 30 0 * * *): ошибка одного шага не мешает остальным.
-import { LISTING_TTL_MS, NOTIFICATION_TTL_MS } from '../config.js';
+import { LISTING_TTL_MS, NOTIFICATION_TTL_MS, PRICE_ALERT_TTL_MS } from '../config.js';
 import { refreshRate } from '../db/rates.js';
 import { trackDb } from '../db/tracked.js';
 import { Budget } from './budget.js';
@@ -14,11 +14,18 @@ async function rateStep(ctx) {
 /** Объявления, не виденные 30 дней, и уведомления старше года (data-model.md listings, notifications). */
 async function cleanupStep(ctx) {
   const { db, now } = ctx;
-  const [listings, notifications] = await db.batch([
-    db.prepare('DELETE FROM listings WHERE last_seen_at < ?').bind(now - LISTING_TTL_MS),
+  // Понравившиеся хранятся, пока стоит лайк (specs/003-listing-likes/research.md R5).
+  const [listings, notifications, priceAlerts] = await db.batch([
+    db
+      .prepare(
+        `DELETE FROM listings WHERE last_seen_at < ?
+           AND NOT EXISTS (SELECT 1 FROM marks m WHERE m.kind = 'like' AND m.listing_id = listings.id)`,
+      )
+      .bind(now - LISTING_TTL_MS),
     db.prepare('DELETE FROM notifications WHERE created_at < ?').bind(now - NOTIFICATION_TTL_MS),
+    db.prepare('DELETE FROM price_alerts WHERE created_at < ?').bind(now - PRICE_ALERT_TTL_MS),
   ]);
-  return { listings: listings.meta.changes, notifications: notifications.meta.changes };
+  return { listings: listings.meta.changes, notifications: notifications.meta.changes, price_alerts: priceAlerts.meta.changes };
 }
 
 /** Смена отметки «новое по номеру»: new_id_floor ← id_snapshot ← max_id_seen (data-model.md sources). */
