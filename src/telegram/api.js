@@ -46,3 +46,16 @@ export function parseTelegramResponse(status, text) {
 export function sendMessage(env, chatId, text, extra = {}) {
   return callTelegram(env, 'sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', ...extra });
 }
+
+export function editMessageReplyMarkup(env, chatId, messageId, replyMarkup) {
+  return callTelegram(env, 'editMessageReplyMarkup', { chat_id: chatId, message_id: messageId, reply_markup: replyMarkup });
+}
+
+/** Ответ на нажатие кнопки: строка вверху чата или окно (`showAlert`); Telegram принимает до 200 символов. */
+export function answerCallbackQuery(env, callbackId, text = null, { showAlert = false } = {}) {
+  return callTelegram(env, 'answerCallbackQuery', {
+    callback_query_id: callbackId,
+    ...(text ? { text: text.slice(0, 200) } : {}),
+    ...(showAlert ? { show_alert: true } : {}),
+  });
+}

@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import realt from '../../src/sources/realt.js';
+import { isAllowed, parseRobots } from '../../src/sources/robots.js';
 
 const fixture = (name) => readFileSync(new URL(`../fixtures/realt/${name}`, import.meta.url), 'utf8');
 const feed = (key) => realt.feeds.find((f) => f.key === key);
@@ -36,7 +37,7 @@ for (const p of PAGES) {
 const [brest, brestP2, minsk, dachi] = PAGES;
 
 const KEYS = [
-  'externalId', 'url', 'kind', 'paid', 'price', 'priceUsd', 'priceByn', 'houseArea', 'plotArea', 'coords', 'place',
+  'externalId', 'url', 'kind', 'paid', 'price', 'priceCurrency', 'priceUsd', 'priceByn', 'houseArea', 'plotArea', 'coords', 'place',
   'publishedAt', 'siteCreatedAt', 'photoUrl',
 ].sort();
 const isIso = (s) => typeof s === 'string' && new Date(s).toISOString() === s;
@@ -300,4 +301,41 @@ test('12 лент: 6 областей × дома и дачи, уникальн�
   assert.equal(realt.origin, 'https://realt.by');
   assert.deepEqual(realt.allowHosts, ['realt.by']);
   assert.equal(realt.intervalMin, 20);
+});
+
+// Страница объявления для проверки понравившихся (specs/003-listing-likes/contracts/source-adapter.md).
+test('parseCard: цена в валюте продавца, курсы и площади живого объявления', () => {
+  assert.deepEqual(realt.parseCard(fixture('card.html')), {
+    gone: false,
+    price: { amount: 73000, currency: 'USD' },
+    priceCurrency: 'USD',
+    priceUsd: 73000,
+    priceByn: 218781,
+    houseArea: { value: 99.2, unit: 'm2' },
+    plotArea: { value: 13.5, unit: 'sotki' },
+  });
+});
+
+test('parseCard: archive и страница 404 сайта — снято; без данных — null', () => {
+  assert.deepEqual(realt.parseCard(fixture('card-archived.html')), { gone: true });
+  assert.deepEqual(realt.parseCard(fixture('card-404.html')), { gone: true });
+  for (const body of ['<html></html>', '', null, pageWith({ objects: [] }), pageWith({ object: null })]) {
+    assert.equal(realt.parseCard(body), null);
+  }
+});
+
+test('parseCard: цена в рублях у продавца; без цены — null', () => {
+  const object = { code: 1, price: 150000, priceCurrency: 933, priceRates: { 840: 50000, 933: 150000 }, areaTotal: 80, areaLand: 10, archive: 0 };
+  const byn = realt.parseCard(pageWith({ object }));
+  assert.deepEqual([byn.price, byn.priceCurrency, byn.priceUsd], [{ amount: 150000, currency: 'BYN' }, 'BYN', 50000]);
+  const none = realt.parseCard(pageWith({ object: { ...object, price: null, priceRates: {} } }));
+  assert.deepEqual([none.price, none.priceCurrency, none.priceUsd, none.priceByn], [null, null, null, null]);
+});
+
+test('cardRequest — адрес объявления; cardSample открыт в robots.txt', () => {
+  const url = 'https://realt.by/brest-region/sale-cottages/object/3958190/';
+  assert.deepEqual(realt.cardRequest({ id: 1, external_id: '3958190', url }), { url, accept: 'text/html' });
+  const robots = parseRobots(readFileSync(new URL('../fixtures/robots/realt.txt', import.meta.url), 'utf8'));
+  assert.ok(isAllowed(robots, realt.cardSample, 'house-hunter-bot/0.1.0'));
+  assert.ok(isAllowed(robots, 'https://realt.by/brest-region/sale-cottages/object/3958190/', 'house-hunter-bot/0.1.0'));
 });

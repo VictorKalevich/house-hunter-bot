@@ -2,6 +2,7 @@
 import { LIST_PAGE_SIZE } from '../config.js';
 import { enqueueStatement } from '../db/distances.js';
 import { searchListings } from '../db/listings.js';
+import { listMarks, setMark } from '../db/marks.js';
 import {
   createSearch, deleteSearch, getOwnSearch, listOwnSearches, pauseSearch, resumeSearch, searchToApi, settlementOf,
   updateSearch,
@@ -9,6 +10,7 @@ import {
 import { sourcesStatusRows, userSourcesStatus } from '../db/sources.js';
 import { getUser, upsertOwner } from '../db/users.js';
 import { getSettlement, suggestSettlements } from '../geo/gazetteer.js';
+import { haversineKm } from '../geo/haversine.js';
 import { listingCard } from '../match/format.js';
 import { buildTitle, validateCriteria } from '../match/validate.js';
 import { ADAPTERS, feedId } from '../sources/index.js';
@@ -27,6 +29,10 @@ class ApiError extends Error {
 }
 
 const NOT_FOUND = () => new ApiError(404, 'not_found', 'Поиск не найден');
+const MARK_ERRORS = {
+  not_found: [404, 'Объявление уже удалено из бота'],
+  like_limit: [409, 'В понравившихся уже 100 объявлений — уберите лишние'],
+};
 
 function json(status, body) {
   return new Response(body === null ? null : JSON.stringify(body), {
@@ -82,6 +88,20 @@ async function enqueueMissing(db, row, missing, now) {
     settlementId: row.settlement_id, geoKey: m.geo_key, straightKm: m.straight_km, priority: 0,
     needExit: row.distance_mode === 'road_exit', now,
   })));
+}
+
+function pageParam(url) {
+  const raw = url.searchParams.get('page') ?? '1';
+  const page = /^\d{1,6}$/.test(raw) ? Number(raw) : 0;
+  if (page < 1) throw new ApiError(422, 'invalid', 'Неверный номер страницы', { page: 'Номер страницы — целое число от 1' });
+  return page;
+}
+
+/** Расстояние на экранах отметок — по прямой от пункта самого нового поиска (contracts/miniapp-api.md 003). */
+function markDistance(settlement, row) {
+  if (!settlement || row.lat == null || row.lon == null) return null;
+  const km = haversineKm(settlement.lat, settlement.lon, row.lat, row.lon);
+  return { km, mode: 'straight', approx: row.geo_approx === 1, fallback: false, pending: false, from: settlement.name };
 }
 
 function listingsOf(db, row, page, now) {
@@ -147,14 +167,12 @@ async function route(request, env, url, user, now) {
       return json(200, searchToApi(await ownSearch(db, user.id, id)));
     }
     if (action === 'listings' && method === 'GET') {
-      const raw = url.searchParams.get('page') ?? '1';
-      const page = /^\d{1,6}$/.test(raw) ? Number(raw) : 0;
-      if (page < 1) throw new ApiError(422, 'invalid', 'Неверный номер страницы', { page: 'Номер страницы — целое число от 1' });
+      const page = pageParam(url);
       const row = await ownSearch(db, user.id, id);
       const { rows, total, totalApprox, distancesPending, missing } = await listingsOf(db, row, page, now);
       await enqueueMissing(db, row, missing, now);
       return json(200, {
-        items: rows.map(({ row: listing, distance }) => listingCard(listing, distance)),
+        items: rows.map(({ row: listing, distance }) => listingCard(listing, distance, { mark: listing.mark ?? null, now })),
         page,
         pageSize: LIST_PAGE_SIZE,
         total,
@@ -162,6 +180,32 @@ async function route(request, env, url, user, now) {
         distancesPending,
       });
     }
+  }
+
+  if (path === '/api/marks' && method === 'GET') {
+    const kind = url.searchParams.get('kind');
+    if (kind !== 'like' && kind !== 'hide') throw new ApiError(422, 'invalid', 'Неверный вид отметки', { kind: 'Ожидается like или hide' });
+    const page = pageParam(url);
+    const { rows, total, settlement } = await listMarks(db, user.id, kind, page);
+    return json(200, {
+      items: rows.map((row) => listingCard(row, markDistance(settlement, row), { mark: row.mark, now })),
+      page,
+      pageSize: LIST_PAGE_SIZE,
+      total,
+    });
+  }
+
+  const lm = /^\/api\/listings\/(\d{1,15})\/mark$/.exec(path);
+  if (lm && method === 'PUT') {
+    const body = await readBody(request);
+    const mark = body?.mark;
+    if (mark !== 'like' && mark !== 'hide' && mark !== null) {
+      throw new ApiError(422, 'invalid', 'Неверная отметка', { mark: 'Ожидается like, hide или null' });
+    }
+    const id = Number(lm[1]);
+    const res = await setMark(db, user.id, id, mark, now);
+    if (res.error) throw new ApiError(MARK_ERRORS[res.error][0], res.error, MARK_ERRORS[res.error][1]);
+    return json(200, { id, mark: res.mark });
   }
 
   throw new ApiError(404, 'not_found', 'Нет такого адреса');

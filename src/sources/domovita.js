@@ -110,6 +110,7 @@ function toListing(it) {
     price: priceUsd !== null
       ? { amount: priceUsd, currency: 'USD' }
       : priceByn !== null ? { amount: priceByn, currency: 'BYN' } : null,
+    priceCurrency: null,
     priceUsd,
     priceByn,
     houseArea: houseArea === null ? null : { value: houseArea, unit: 'm2' },

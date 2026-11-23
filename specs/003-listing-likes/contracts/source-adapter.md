@@ -36,9 +36,12 @@ export default {
   /** Образец адреса страницы для сверки с robots.txt (как detailRequest('1') в 001). */
   cardSample: 'https://realt.by/sale-cottages/object/1/',
 
+  /** Цена запроса страницы в единицах бюджета тика (CPU разбора, `npm run bench`). */
+  cardCost: 2,
+
   /**
    * Разбор ответа 200. Чистая функция; null — страница не распознана («не удалось»).
-   * gone: true — на странице сказано, что объявление снято (а не 404).
+   * gone: true — на странице сказано, что объявление снято, или сайт отдал страницу «не найдено» с кодом 200.
    */
   parseCard(body) {
     return { gone: false, price: { amount, currency } | null, priceCurrency, priceUsd, priceByn, houseArea, plotArea };
@@ -50,11 +53,16 @@ export default {
 
 | Сайт | `cardRequest` | `parseCard` | `cost` |
 |---|---|---|---|
-| realt.by | `listing.url` | `__NEXT_DATA__` → `pageProps.object`: те же функции цены и площадей, что у выдачи; `archive` истинно → `gone` | 2 |
-| moyareklama.by | `/single/ad/<external_id>` (как `detailRequest`) | `<div class="price">` → BYN; площади — из `<title>` разбором заголовка выдачи | 1 |
+| realt.by | `listing.url` | `__NEXT_DATA__` → `pageProps.object`: те же функции цены и площадей, что у выдачи; `archive` истинно → `gone`; `__NEXT_DATA__.page === '/404'` → `gone` | 2 |
+| moyareklama.by | `/single/ad/<external_id>` (как `detailRequest`) | `<div class="price">` → BYN; площади — из `<title>` разбором заголовка выдачи; `<title>` с «Ошибка 404» → `gone` | 1 |
 | kufar.by, domovita.by | — | — | — |
 
 kufar.by и domovita.by — без проверки страниц (research.md R6).
+
+Проверено на живых сайтах 2026-11-23: несуществующее объявление realt.by отвечает **200** со страницей «не найдено»
+(`__NEXT_DATA__.page = '/404'`, без `pageProps.object`), moyareklama.by — 200 с `<title>` «Ошибка 404». Обе страницы
+считаются «снято», а не «не удалось»: иначе снятое объявление никогда не получило бы пометку. Сохранённые страницы —
+`tests/fixtures/realt/card-404.html`, `tests/fixtures/moyareklama/card-404.html`.
 
 ## Ошибки проверки страницы
 
@@ -82,6 +90,7 @@ kufar.by и domovita.by — без проверки страниц (research.md 
 - Разбор: `tests/sources/<id>.test.mjs` на сохранённых страницах, обезличенных (`tests/unit/security.test.mjs`):
   - `tests/fixtures/realt/card.html` — живое объявление: цена, валюта, площади;
   - `tests/fixtures/realt/card-archived.html` — та же страница с `archive: 1`;
+  - `tests/fixtures/realt/card-404.html`, `tests/fixtures/moyareklama/card-404.html` — «не найдено» с кодом 200;
   - `tests/fixtures/moyareklama/card.html` — уже есть: цена и площади;
   - неразобранная страница → `null`.
 - `priceCurrency` у каждого объявления сохранённых страниц выдачи — по таблице выше.

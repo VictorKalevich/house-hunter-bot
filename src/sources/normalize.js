@@ -27,6 +27,17 @@ export function priceUsd(raw, rate) {
   return null;
 }
 
+const SELLER_CURRENCIES = ['USD', 'BYN', 'EUR'];
+
+/** Цена в валюте продавца (specs/003-listing-likes/data-model.md listings.price_amount, price_currency). */
+export function sellerPrice(raw) {
+  const amount = positive(raw.price?.amount);
+  if (amount === null || !SELLER_CURRENCIES.includes(raw.priceCurrency) || raw.price.currency !== raw.priceCurrency) {
+    return { price_amount: null, price_currency: null };
+  }
+  return { price_amount: round2(amount), price_currency: raw.priceCurrency };
+}
+
 export function priceByn(raw) {
   if (positive(raw.priceByn)) return Math.round(raw.priceByn);
   const amount = positive(raw.price?.amount);
@@ -114,6 +125,7 @@ export function normalizeListing(raw, adapter, { now, rate, settlement = null })
     kind: KINDS.includes(raw.kind) ? raw.kind : null,
     price_usd: priceUsd(raw, rate),
     price_byn: priceByn(raw),
+    ...sellerPrice(raw),
     house_m2: round2(positive(raw.houseArea?.value)),
     plot_sotki: plotSotki(raw.plotArea),
     lat,

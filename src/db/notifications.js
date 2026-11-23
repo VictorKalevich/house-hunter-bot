@@ -13,10 +13,12 @@ export function duePendingStatement(db, now, limit) {
     .prepare(
       `SELECT n.id, n.user_id, n.source, n.external_id, n.listing_id, n.search_ids, n.distance_label, n.attempts,
               u.access, u.blocked_at,
-              l.url, l.kind, l.price_usd, l.price_byn, l.house_m2, l.plot_sotki, l.place_text, l.photo_url
+              l.url, l.kind, l.price_usd, l.price_byn, l.house_m2, l.plot_sotki, l.place_text, l.photo_url,
+              m.kind AS mark
        FROM notifications n
        JOIN users u ON u.telegram_id = n.user_id
        LEFT JOIN listings l ON l.id = n.listing_id
+       LEFT JOIN marks m ON m.user_id = n.user_id AND m.listing_id = n.listing_id
        WHERE n.status = 'pending' AND n.next_attempt_at <= ?
        ORDER BY n.next_attempt_at, n.id
        LIMIT ?`,

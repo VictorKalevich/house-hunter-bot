@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import moyareklama from '../../src/sources/moyareklama.js';
+import { isAllowed, parseRobots } from '../../src/sources/robots.js';
 
 const read = (name) => readFileSync(new URL(`../fixtures/moyareklama/${name}`, import.meta.url), 'utf8');
 const feed = (key) => moyareklama.feeds.find((f) => f.key === key);
@@ -16,7 +17,7 @@ const card = read('card.html');
 
 const KINDS = new Set(['house', 'dacha', 'cottage', 'part']);
 const KEYS = [
-  'externalId', 'url', 'kind', 'paid', 'price', 'priceUsd', 'priceByn', 'houseArea', 'plotArea', 'coords', 'place',
+  'externalId', 'url', 'kind', 'paid', 'price', 'priceCurrency', 'priceUsd', 'priceByn', 'houseArea', 'plotArea', 'coords', 'place',
   'publishedAt', 'siteCreatedAt', 'photoUrl',
 ].sort();
 
@@ -76,6 +77,7 @@ test('первое объявление разобрано точно', () => {
     kind: 'house',
     paid: true,
     price: { amount: 312000, currency: 'BYN' },
+    priceCurrency: 'BYN',
     priceUsd: null,
     priceByn: 312000,
     houseArea: { value: 235, unit: 'm2' },
@@ -289,4 +291,37 @@ test('описание источника по контракту', () => {
   assert.deepEqual(moyareklama.allowHosts, ['www.moyareklama.by', 'moyareklama.by']);
   assert.equal(moyareklama.idKind, 'numeric');
   assert.equal(moyareklama.intervalMin, 15);
+});
+
+// Страница объявления для проверки понравившихся (specs/003-listing-likes/contracts/source-adapter.md).
+test('parseCard: 7 000 BYN, дом 36,1 м², участок 25 сот.', () => {
+  assert.deepEqual(moyareklama.parseCard(card), {
+    gone: false,
+    price: { amount: 7000, currency: 'BYN' },
+    priceCurrency: 'BYN',
+    priceUsd: null,
+    priceByn: 7000,
+    houseArea: { value: 36.1, unit: 'm2' },
+    plotArea: { value: 25, unit: 'sotki' },
+  });
+});
+
+test('parseCard: «Ошибка 404» — снято; выдача, защита, пусто — null', () => {
+  assert.deepEqual(moyareklama.parseCard(read('card-404.html')), { gone: true });
+  for (const body of [section, subsection, read('blocked.html'), '', null]) assert.equal(moyareklama.parseCard(body), null);
+  assert.equal(moyareklama.parseCard(section), null, 'повторный вызов: состояние регулярки не мешает');
+});
+
+test('parseCard: договорная цена — цены нет, площади есть', () => {
+  const noPrice = card.replace(/<div class="price">[\s\S]*?<\/div>/, '<div class="price">Договорная</div>');
+  const r = moyareklama.parseCard(noPrice);
+  assert.deepEqual([r.gone, r.price, r.priceCurrency, r.priceByn, r.houseArea.value], [false, null, null, null, 36.1]);
+});
+
+test('cardRequest — /single/ad/<id>; cardSample открыт в robots.txt', () => {
+  assert.deepEqual(moyareklama.cardRequest({ id: 5, external_id: '1366262', url: 'x' }), {
+    url: 'https://www.moyareklama.by/single/ad/1366262', accept: 'text/html',
+  });
+  const robots = parseRobots(read('../robots/moyareklama.txt'));
+  assert.ok(isAllowed(robots, moyareklama.cardSample, 'house-hunter-bot/0.1.0'));
 });

@@ -104,3 +104,16 @@ test('нужна карточка, если адаптер умеет её чи�
   assert.equal(row.needs_detail, 1);
   assert.equal(normalizeListing(raw({ url: 'https://moyareklama.by/single/ad/1' }), withDetail, { now, rate: 3 }).needs_detail, 0);
 });
+
+test('цена в валюте продавца: price_amount и price_currency; без валюты — оба NULL (фича 003)', () => {
+  const usd = normalizeListing(raw({ priceCurrency: 'USD' }), numeric, { now, rate: 3 });
+  assert.deepEqual([usd.price_amount, usd.price_currency], [75000, 'USD']);
+  const byn = normalizeListing(raw({ price: { amount: 226000, currency: 'BYN' }, priceCurrency: 'BYN' }), numeric, { now, rate: 3 });
+  assert.deepEqual([byn.price_amount, byn.price_currency, byn.price_usd, byn.price_byn], [226000, 'BYN', 75000, 245000]);
+  const eur = normalizeListing(raw({ price: { amount: 60000, currency: 'EUR' }, priceCurrency: 'EUR', priceUsd: null }), numeric, { now, rate: 3 });
+  assert.deepEqual([eur.price_amount, eur.price_currency], [60000, 'EUR']);
+  for (const over of [{}, { priceCurrency: null }, { priceCurrency: 'RUB' }, { priceCurrency: 'BYN' }, { price: null, priceCurrency: 'USD' }]) {
+    const row = normalizeListing(raw(over), numeric, { now, rate: 3 });
+    assert.deepEqual([row.price_amount, row.price_currency], [null, null], JSON.stringify(over));
+  }
+});

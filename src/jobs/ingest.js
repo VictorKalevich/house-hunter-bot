@@ -2,8 +2,10 @@
 import { LAST_SEEN_UPDATE_MS } from '../config.js';
 import { latestRateStatement } from '../db/rates.js';
 import { existingStatement, insertListingStatement, updateListingStatement } from '../db/listings.js';
+import { insertForLikesStatement } from '../db/price-alerts.js';
 import { updateSourceStatement } from '../db/sources.js';
 import { matchPlacesQuery } from '../geo/gazetteer.js';
+import { priceChange } from '../match/price-change.js';
 import { computeIsNew, normalizeListing, validCoords } from '../sources/normalize.js';
 
 const IN_CHUNK = 90;
@@ -78,6 +80,12 @@ export async function ingestStep(ctx) {
         writes.push(updateListingStatement(db, old.id, { ...fields, last_seen_at: now }));
         stats.updated += 1;
       }
+      // Сообщения о цене — в том же batch, что новая цена (specs/003-listing-likes/research.md R10).
+      const change = priceChange(old, { ...old, ...fields });
+      if (change) {
+        writes.push(insertForLikesStatement(db, old.id, change, now));
+        stats.priceChanges = (stats.priceChanges ?? 0) + 1;
+      }
     }
     if (maxId !== null) {
       writes.push(db
@@ -93,8 +101,11 @@ export async function ingestStep(ctx) {
   return stats;
 }
 
-/** Что поменялось у уже известного объявления: тип, цена, площади; место — если раньше его не было. */
-function changedFields(old, row, raw) {
+/**
+ * Что поменялось у уже известного объявления: тип, цена, площади; место — если раньше его не было. Объявление снова
+ * на сайте — пометка «снято» снимается (specs/003-listing-likes/data-model.md listings.gone_at).
+ */
+export function changedFields(old, row, raw) {
   const fields = {};
   if (row.kind !== null && row.kind !== old.kind) fields.kind = row.kind;
   const siteUsd = Boolean(raw.priceUsd) || raw.price?.currency === 'USD';
@@ -103,10 +114,15 @@ function changedFields(old, row, raw) {
     fields.price_byn = row.price_byn;
     fields.price_usd = row.price_usd;
   } else if (row.price_byn !== old.price_byn) fields.price_byn = row.price_byn;
+  if (row.price_amount !== old.price_amount || row.price_currency !== old.price_currency) {
+    fields.price_amount = row.price_amount;
+    fields.price_currency = row.price_currency;
+  }
   if (row.house_m2 !== old.house_m2) fields.house_m2 = row.house_m2;
   if (row.plot_sotki !== old.plot_sotki) fields.plot_sotki = row.plot_sotki;
   if (old.lat === null && row.lat !== null) {
     Object.assign(fields, { lat: row.lat, lon: row.lon, geo_key: row.geo_key, geo_approx: row.geo_approx, settlement_id: row.settlement_id });
   }
+  if (old.gone_at != null) fields.gone_at = null;
   return fields;
 }

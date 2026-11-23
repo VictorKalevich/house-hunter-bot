@@ -267,6 +267,9 @@
       if (path === '/search/new') return await showForm(null, /^\d{1,15}$/.test(params.get('copy') || '') ? Number(params.get('copy')) : null);
       if ((m = /^\/search\/(\d+)$/.exec(path))) return await showSummary(Number(m[1]));
       if ((m = /^\/search\/(\d+)\/edit$/.exec(path))) return await showForm(Number(m[1]));
+      if (path === '/liked' || path === '/hidden') {
+        return await showMarks(path === '/liked' ? 'like' : 'hide', Math.max(1, Number(params.get('page')) || 1));
+      }
       if ((m = /^\/search\/(\d+)\/listings$/.exec(path))) {
         return await showListings(Number(m[1]), Math.max(1, Number(params.get('page')) || 1));
       }
@@ -287,9 +290,10 @@
       h('h1', { class: 'ds-hero__title', text: '🏡 Дом рядом' }),
       h('p', { class: 'ds-hero__text', text: 'Новые дома с участками с kufar.by, realt.by, domovita.by и moyareklama.by' }));
     const newButton = h('button', { class: 'ds-btn ds-btn--block', type: 'button', text: 'Новый поиск', onclick: () => go('#/search/new') });
+    const likedButton = h('button', { class: 'ds-btn ds-btn--block ds-btn--secondary', type: 'button', text: '♥ Понравившиеся', onclick: () => go('#/liked') });
 
     if (data.items.length === 0) {
-      show(...[hero, empty('🔍', 'Поисков пока нет', 'Создайте поиск — и бот напишет, как только появится подходящий дом.'), newButton, status].filter(Boolean));
+      show(...[hero, empty('🔍', 'Поисков пока нет', 'Создайте поиск — и бот напишет, как только появится подходящий дом.'), newButton, likedButton, status].filter(Boolean));
       return;
     }
     const list = h('div', { class: 'ds-list' }, data.items.map((s) => h('button', {
@@ -301,7 +305,7 @@
     s.status === 'active'
       ? h('span', { class: 'ds-chip ds-chip--success', text: 'Активен' })
       : h('span', { class: 'ds-chip ds-chip--warning', text: 'Пауза' }))));
-    show(...[hero, h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Мои поиски' }), list), newButton, status].filter(Boolean));
+    show(...[hero, h('div', { class: 'ds-stack' }, h('h2', { class: 'ds-section-title', text: 'Мои поиски' }), list), newButton, likedButton, status].filter(Boolean));
   }
 
   // ---------- Новый поиск / изменить поиск ----------
@@ -685,6 +689,7 @@
     let label;
     if (d.pending) label = 'По прямой, считается';
     else if (d.fallback) label = 'По прямой (маршрут не построен)';
+    else if (d.from) label = `${d.from}, по прямой`;
     else label = { straight: 'По прямой', road_center: 'По дороге от центра', road_exit: 'По дороге от выезда' }[d.mode];
     if (d.approx) label = `≈ ${label}`;
     return fact(label, d.km === null ? null : `${d.km.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} км`);
@@ -710,12 +715,70 @@
     return card.createdAt ? `${updated} · размещено ${shortDate(card.createdAt)}` : updated;
   }
 
+  // День и месяц по Минску: «24.11».
+  function minskDay(iso) {
+    return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Minsk' });
+  }
+
+  // Отметки на карточке (specs/003-listing-likes/contracts/miniapp-api.md «Кнопки карточки»).
+  const MARK_DONE = { like: 'Добавлено в понравившиеся', unlike: 'Убрано из понравившихся', hide: 'Скрыто — больше не покажу', unhide: 'Возвращено' };
+
+  /** PUT отметки; кнопки недоступны до ответа, ошибка — ds-toast и кнопки как были. */
+  async function putMark(card, mark, done, buttons) {
+    buttons.forEach((b) => { b.disabled = true; });
+    try {
+      const res = await api('PUT', `/listings/${card.id}/mark`, { mark });
+      card.mark = res.mark;
+      toast(MARK_DONE[done]);
+      return true;
+    } catch (err) {
+      toast(err.message);
+      buttons.forEach((b) => { b.disabled = false; });
+      return false;
+    }
+  }
+
+  function hiddenRow(card, replace) {
+    const back = h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Вернуть' });
+    back.addEventListener('click', async () => {
+      if (await putMark(card, null, 'unhide', [back])) replace(listingCard(card));
+    });
+    return h('div', { class: 'ds-card ds-row ds-row--between' }, h('span', { class: 'ds-text-muted', text: 'Скрыто' }), back);
+  }
+
+  function markButtons(card, replace) {
+    const liked = card.mark === 'like';
+    const like = h('button', {
+      class: liked ? 'ds-btn ds-btn--sm' : 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button',
+      'aria-pressed': liked ? 'true' : 'false', text: liked ? '♥ В понравившихся' : '♡ Нравится',
+    });
+    const second = card.mark === 'hide'
+      ? h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Вернуть' })
+      : h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Не интересно' });
+    const open = h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Открыть объявление', onclick: () => openLink(card.url) });
+    const buttons = [like, second];
+    like.addEventListener('click', async () => {
+      if (await putMark(card, liked ? null : 'like', liked ? 'unlike' : 'like', buttons)) replace(listingCard(card));
+    });
+    second.addEventListener('click', async () => {
+      if (card.mark === 'hide') {
+        if (await putMark(card, null, 'unhide', buttons)) replace(listingCard(card));
+      } else if (await putMark(card, 'hide', 'hide', buttons)) {
+        replace(hiddenRow(card, replace));
+      }
+    });
+    return h('div', { class: 'ds-row ds-row--wrap' }, like, second, open);
+  }
+
   function listingCard(card) {
     const [price, alt] = priceParts(card);
     const photo = card.photoUrl
       ? h('img', { class: 'ds-listing__photo', src: card.photoUrl, alt: 'Фото дома', loading: 'lazy', referrerpolicy: 'no-referrer' })
       : h('div', { class: 'ds-listing__photo ds-listing__photo--empty', role: 'img', 'aria-label': 'Фото нет', text: '🏡' });
-    return h('article', { class: 'ds-listing' }, photo,
+    const status = card.siteStatus;
+    let el = null;
+    const replace = (next) => { el.replaceWith(next); el = next; };
+    el = h('article', { class: 'ds-listing' }, photo,
       h('div', { class: 'ds-listing__body' },
         h('div', { class: 'ds-listing__top' },
           h('div', null,
@@ -724,14 +787,59 @@
           h('div', { class: 'ds-chips' },
             LISTING_KIND[card.kind] ? h('span', { class: 'ds-chip', text: LISTING_KIND[card.kind] }) : null,
             card.isNew ? h('span', { class: 'ds-chip ds-chip--brand', text: 'Новое' }) : null,
+            status && status.kind === 'gone' ? h('span', { class: 'ds-chip ds-chip--warning', text: `Снято с сайта ${minskDay(status.at)}` }) : null,
             h('span', { class: 'ds-chip', text: SOURCE_TITLE[card.source] || card.source }))),
         h('div', { class: 'ds-listing__facts' },
           fact('Дом', card.houseM2 === null ? null : `${formatNum(card.houseM2)} м²`),
           fact('Участок', card.plotSotki === null ? null : `${card.plotSotki.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} сот.`),
           distanceFact(card.distance)),
         h('div', { class: 'ds-listing__place', text: card.place }),
+        status && status.kind === 'unchecked'
+          ? h('div', { class: 'ds-hint', text: `Не удалось проверить; в выдаче сайта последний раз ${minskDay(status.lastSeenAt)}` })
+          : null,
         h('div', { class: 'ds-listing__meta' }, h('span', { text: cardTime(card) })),
-        h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Открыть объявление', onclick: () => openLink(card.url) })));
+        card.id === null || card.id === undefined
+          ? h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Открыть объявление', onclick: () => openLink(card.url) })
+          : markButtons(card, (next) => replace(next))));
+    return el;
+  }
+
+  function pagerFor(data, hrefOf) {
+    const from = (data.page - 1) * data.pageSize + 1;
+    const to = Math.min(data.total, from + data.items.length - 1);
+    const pages = Math.ceil(data.total / (data.pageSize || PAGE_SIZE));
+    return h('div', { class: 'ds-pager' },
+      h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: '‹ Назад', disabled: data.page <= 1, onclick: () => go(hrefOf(data.page - 1)) }),
+      h('span', { class: 'ds-pager__info', text: `${from}–${to} из ${formatNum(data.total)}${data.totalApprox ? '+' : ''}` }),
+      h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Дальше ›', disabled: data.page >= pages, onclick: () => go(hrefOf(data.page + 1)) }));
+  }
+
+  // ---------- Понравившиеся и скрытые ----------
+
+  const MARK_SCREENS = {
+    like: {
+      hash: '#/liked', back: '#/', title: 'Понравившиеся', loading: 'Загружаем понравившиеся…',
+      empty: ['♡', 'Понравившихся пока нет', 'Отмечайте дома кнопкой ♡ Нравится — в уведомлениях и в списках поисков.'],
+    },
+    hide: {
+      hash: '#/hidden', back: '#/liked', title: 'Скрытые', loading: 'Загружаем скрытые…',
+      empty: ['🙈', 'Скрытых нет', 'Кнопка «Не интересно» убирает дом из списков и уведомлений — здесь его можно вернуть.'],
+    },
+  };
+
+  async function showMarks(kind, page) {
+    const s = MARK_SCREENS[kind];
+    setBack(s.back);
+    show(spinner(s.loading));
+    const data = await api('GET', `/marks?kind=${kind}&page=${page}`);
+    const head = h('div', { class: 'ds-row ds-row--between' },
+      h('h1', { class: 'ds-title', text: s.title }),
+      kind === 'like' ? h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Скрытые', onclick: () => go('#/hidden') }) : null);
+    if (data.total === 0) {
+      show(head, empty(...s.empty));
+      return;
+    }
+    show(head, h('div', { class: 'ds-stack' }, data.items.map(listingCard)), pagerFor(data, (p) => `${s.hash}?page=${p}`));
   }
 
   async function showListings(id, page) {
@@ -752,14 +860,7 @@
         h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Изменить условия', onclick: () => go(`#/search/${id}/edit`) })));
       return;
     }
-    const from = (data.page - 1) * data.pageSize + 1;
-    const to = Math.min(data.total, from + data.items.length - 1);
-    const pages = Math.ceil(data.total / (data.pageSize || PAGE_SIZE));
-    const pager = h('div', { class: 'ds-pager' },
-      h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: '‹ Назад', disabled: data.page <= 1, onclick: () => go(`#/search/${id}/listings?page=${data.page - 1}`) }),
-      h('span', { class: 'ds-pager__info', text: `${from}–${to} из ${formatNum(data.total)}${data.totalApprox ? '+' : ''}` }),
-      h('button', { class: 'ds-btn ds-btn--sm ds-btn--secondary', type: 'button', text: 'Дальше ›', disabled: data.page >= pages, onclick: () => go(`#/search/${id}/listings?page=${data.page + 1}`) }));
-    show(title, ...downs, h('div', { class: 'ds-stack' }, data.items.map(listingCard)), pager);
+    show(title, ...downs, h('div', { class: 'ds-stack' }, data.items.map(listingCard)), pagerFor(data, (p) => `#/search/${id}/listings?page=${p}`));
   }
 
   // ---------- Запуск ----------

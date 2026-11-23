@@ -43,7 +43,7 @@ description: "Задачи реализации: понравившиеся, «�
 
 **Purpose**: общие константы фичи
 
-- [ ] T001 Добавить в `src/config.js`:
+- [X] T001 Добавить в `src/config.js`:
   - `LIKES_MAX = 100` (FR-006);
   - `CARD_CHECK_MS = DAY` — страница не чаще раза в сутки и не после выдачи за сутки (research.md R7);
   - `CARD_GAP_MS = 3 * MINUTE`, `CARD_IDLE_MS = HOUR` — data-model.md `sources.cards_next_at`;
@@ -59,7 +59,7 @@ description: "Задачи реализации: понравившиеся, «�
 
 **⚠️ CRITICAL**: истории начинаются только после этой фазы
 
-- [ ] T002 Написать `migrations/0004_marks.sql` по data-model.md, только `CREATE` и `ALTER TABLE … ADD COLUMN`:
+- [X] T002 Написать `migrations/0004_marks.sql` по data-model.md, только `CREATE` и `ALTER TABLE … ADD COLUMN`:
   - таблица `marks` — поля `marks.user_id`, `marks.listing_id`, `marks.kind`, `marks.created_at`; ключ, `WITHOUT
     ROWID`, индексы `marks_user`, `marks_kind`;
   - таблица `price_alerts` — поля `price_alerts.user_id`, `price_alerts.listing_id`, `price_alerts.currency`,
@@ -71,18 +71,18 @@ description: "Задачи реализации: понравившиеся, «�
   - `CHECK` — по типам полей data-model.md.
 
   Проверка: `npm run test:e2e` — сквозные тесты 001 и 002 зелёные на базе с 0001–0004.
-- [ ] T003 [P] Тесты `tests/unit/format.test.mjs` и `tests/unit/listing-card.test.mjs`:
+- [X] T003 [P] Тесты `tests/unit/format.test.mjs` и `tests/unit/listing-card.test.mjs`:
   - `markKeyboard(listing, mark)` — три состояния по contracts/telegram-bot.md 003 «Нажатия кнопок отметок»;
     `callback_data` ≤ 64 байт при `id` в 15 цифр;
   - `notificationMessage` с отметкой `null` и `like` — две строки кнопок;
   - `listingCard` отдаёт `id` и `mark` (contracts/miniapp-api.md 003 «Объекты»).
-- [ ] T004 `src/match/format.js`:
+- [X] T004 `src/match/format.js`:
   - `markKeyboard(listing, mark)` → `{ inline_keyboard }` (research.md R3);
   - `notificationMessage` принимает `mark` и строит клавиатуру через `markKeyboard`;
   - `listingCard(row, distance, { mark })` — поля `id`, `mark`.
 
   Проверка: T003 зелёный, прежние тесты format и listing-card зелёные.
-- [ ] T005 [P] Новый `src/db/marks.js`:
+- [X] T005 [P] Новый `src/db/marks.js`:
   - `getMark(db, userId, listingId)`;
   - `setMark(db, userId, listingId, mark, now)` по research.md R2: `mark` — `'like'` | `'hide'` | `null`.
     - Сначала проверка, что объявление есть → `{ error: 'not_found' }`.
@@ -95,7 +95,7 @@ description: "Задачи реализации: понравившиеся, «�
     - страница по `marks_user`, `ORDER BY created_at DESC`, `LIMIT/OFFSET` по `LIST_PAGE_SIZE`;
     - `COUNT(*)`;
     - пункт самого нового поиска пользователя с `settlement_id` (research.md R11).
-- [ ] T006 [P] `src/telegram/api.js`:
+- [X] T006 [P] `src/telegram/api.js`:
   - `editMessageReplyMarkup(env, chatId, messageId, replyMarkup)`;
   - `answerCallbackQuery(env, id, text, { showAlert })` — `text` ≤ 200 символов (research.md, вступление).
 
@@ -114,7 +114,7 @@ description: "Задачи реализации: понравившиеся, «�
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T007 [P] [US1] Новый сквозной тест `tests/e2e/likes.e2e.mjs`, quickstart.md §2, строки 1–6.
+- [X] T007 [P] [US1] Новый сквозной тест `tests/e2e/likes.e2e.mjs`, quickstart.md §2, строки 1–6.
   - **Лайк кнопкой.** Уведомление о новом доме kufar → `h.callback(OWNER, 'lk:<id>')`:
     - `answerCallbackQuery` «Добавлено в понравившиеся»;
     - `editMessageReplyMarkup` с «♥ В понравившихся» / `ul:<id>`;
@@ -136,28 +136,28 @@ description: "Задачи реализации: понравившиеся, «�
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] `src/db/notifications.js` `duePendingStatement`: `LEFT JOIN marks m ON m.user_id = n.user_id AND
+- [X] T008 [US1] `src/db/notifications.js` `duePendingStatement`: `LEFT JOIN marks m ON m.user_id = n.user_id AND
   m.listing_id = n.listing_id`, `m.kind AS mark`, `l.id AS listing_row_id`. `src/jobs/deliver.js` передаёт `mark` в
   `notificationMessage` (contracts/telegram-bot.md 003 «Кнопки под уведомлением»).
-- [ ] T009 [US1] `src/telegram/webhook.js`:
+- [X] T009 [US1] `src/telegram/webhook.js`:
   - кнопка меню «Понравившиеся» (`web_app` → `/app#/liked`) после «Мои поиски» для всех пользователей;
   - в `handleCallback` до проверки «только владелец» — `lk:<id>` и `ul:<id>` через `setMark`:
     - сначала `answerCallbackQuery` (тексты и окна — contracts/telegram-bot.md 003);
     - затем `editMessageReplyMarkup` по `cq.message.chat.id` и `message_id` с `markKeyboard`;
     - `url` объявления — из строки `listings`;
     - сообщение недоступно (`date = 0`) и ответ `400` «message is not modified» — не ошибка (research.md R3).
-- [ ] T010 [US1] `src/http/api.js`:
+- [X] T010 [US1] `src/http/api.js`:
   - `PUT /api/listings/{id}/mark` и `GET /api/marks?kind=&page=` по contracts/miniapp-api.md 003 «Методы»: ошибки
     `404 not_found`, `409 like_limit`, `422 invalid` с `fields`;
   - карточки `GET /api/marks` — через `listingCard`. `distance` — по прямой от пункта из `listMarks` (`haversineKm`,
     `mode: 'straight'`, `approx` по `geo_approx`, `from` — название пункта); нет пункта или координат → `null`.
-- [ ] T011 [US1] `src/db/listings.js` `searchListings`:
+- [X] T011 [US1] `src/db/listings.js` `searchListings`:
   - `LEFT JOIN marks m ON m.user_id = ? AND m.listing_id = l.id` с `search.user_id`, `m.kind AS mark`;
   - вместе с `distances` — порядок `joinParams`;
   - `src/http/api.js` передаёт `mark` в `listingCard` списка поиска.
-- [ ] T012 [US1] `src/jobs/daily.js` `cleanupStep`: удаление объявлений — с условием «нет лайка» (data-model.md
+- [X] T012 [US1] `src/jobs/daily.js` `cleanupStep`: удаление объявлений — с условием «нет лайка» (data-model.md
   listings, «Очистка»; research.md R5).
-- [ ] T013 [US1] `src/app/app.js.txt`, по contracts/miniapp-api.md 003 «Кнопки карточки», «Экраны», «Тексты»,
+- [X] T013 [US1] `src/app/app.js.txt`, по contracts/miniapp-api.md 003 «Кнопки карточки», «Экраны», «Тексты»,
   «Переходы»:
   - **кнопки карточки** — строка `ds-row ds-row--wrap` вместо одиночной «Открыть объявление»: «♡ Нравится» / «♥ В
     понравившихся» с `aria-pressed`, «Открыть объявление»; нажатие — `PUT …/mark`, кнопка недоступна до ответа,
@@ -165,7 +165,7 @@ description: "Задачи реализации: понравившиеся, «�
   - **экран `#/liked?page=n`** — заголовок, карточки, `ds-pager`, `ds-empty`; «Назад» → `#/`;
   - **главный экран** — кнопка «♥ Понравившиеся» под «Новый поиск»;
   - **расстояние** — подпись факта «<from>, по прямой».
-- [ ] T014 [US1] `npm test` и `npm run test:e2e` — зелёные: T007 и тесты 001, 002.
+- [X] T014 [US1] `npm test` и `npm run test:e2e` — зелёные: T007 и тесты 001, 002.
 
 **Checkpoint**: лайки работают в чате и в мини-приложении, список «Понравившиеся» — US1 проверяется сама по себе
 
@@ -180,7 +180,7 @@ description: "Задачи реализации: понравившиеся, «�
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T015 [P] [US2] Новый сквозной тест `tests/e2e/hidden.e2e.mjs`, quickstart.md §2, строки 7–9.
+- [X] T015 [P] [US2] Новый сквозной тест `tests/e2e/hidden.e2e.mjs`, quickstart.md §2, строки 7–9.
   - **Скрытие через API.** `PUT …/mark { mark: 'hide' }` → дома нет в `/listings`, `total` на 1 меньше;
     `GET /api/marks?kind=hide` — дом есть; `{ mark: null }` возвращает его в список.
   - **Скрытие кнопкой.** `hd:<id>` под уведомлением → «Скрыто — больше не покажу», клавиатура «Скрыто · вернуть» /
@@ -192,18 +192,18 @@ description: "Задачи реализации: понравившиеся, «�
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] `src/db/listings.js` `searchListings`: условие `(m.kind IS NULL OR m.kind <> 'hide')` в `WHERE` —
+- [X] T016 [US2] `src/db/listings.js` `searchListings`: условие `(m.kind IS NULL OR m.kind <> 'hide')` в `WHERE` —
   скрытые не входят ни в `rows`, ни в `total` (FR-009, research.md R4).
-- [ ] T017 [US2] `src/jobs/deliver.js`: строка с `mark = 'hide'` → `resultStatement` `failed`, `last_error` «скрыто
+- [X] T017 [US2] `src/jobs/deliver.js`: строка с `mark = 'hide'` → `resultStatement` `failed`, `last_error` «скрыто
   пользователем», без `sendMessage` (research.md R4).
-- [ ] T018 [US2] `src/telegram/webhook.js`: `hd:<id>` и `uh:<id>` по contracts/telegram-bot.md 003. `uh` снимает
+- [X] T018 [US2] `src/telegram/webhook.js`: `hd:<id>` и `uh:<id>` по contracts/telegram-bot.md 003. `uh` снимает
   только `hide`: если отметка другая, ничего не меняется, клавиатура — по текущей.
-- [ ] T019 [US2] `src/app/app.js.txt`, по contracts/miniapp-api.md 003:
+- [X] T019 [US2] `src/app/app.js.txt`, по contracts/miniapp-api.md 003:
   - **«Не интересно» на карточке.** После ответа карточка сменяется `ds-card` с `ds-row ds-row--between` («Скрыто»,
     «Вернуть»); «Вернуть» — `PUT { mark: null }` и карточка обратно.
   - **Экран `#/hidden?page=n`.** Кнопки «♡ Нравится», «Вернуть», «Открыть объявление»; «Назад» → `#/liked`.
   - **Ссылка** «Скрытые» на экране «Понравившиеся».
-- [ ] T020 [US2] `npm test` и `npm run test:e2e` — зелёные.
+- [X] T020 [US2] `npm test` и `npm run test:e2e` — зелёные.
 
 **Checkpoint**: скрытые не видны в списках и сообщениях, возвращаются — US2 проверяется сама по себе
 
@@ -219,7 +219,7 @@ description: "Задачи реализации: понравившиеся, «�
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T021 [P] [US3] Сохранённые страницы и тесты разбора.
+- [X] T021 [P] [US3] Сохранённые страницы и тесты разбора.
   - **`tests/fixtures/realt/card.html`** — живое объявление со страницы, полученной 2026-11-23. Из `__NEXT_DATA__`
     убрать имена, телефоны, e-mail, текст объявления, лишние картинки; оставить `pageProps.object` с ценой, валютой,
     площадями, `status`, `archive`.
@@ -230,12 +230,12 @@ description: "Задачи реализации: понравившиеся, «�
   - **`tests/sources/moyareklama.test.mjs`**: `parseCard` на `tests/fixtures/moyareklama/card.html` — 7 000 BYN,
     `priceCurrency: 'BYN'`, площади дома 36,1 м² и участка 25 сот.; страница выдачи → `null`.
   - **`tests/unit/security.test.mjs`** зелёный на новых страницах.
-- [ ] T022 [P] [US3] `tests/unit/listing-card.test.mjs` — `siteStatus` по data-model.md listings, «Пометка на
+- [X] T022 [P] [US3] `tests/unit/listing-card.test.mjs` — `siteStatus` по data-model.md listings, «Пометка на
   карточке»:
   - `gone_at` → `{ kind: 'gone', at }`;
   - лайк и `MAX(last_seen_at, check_ok_at)` старше 7 суток → `unchecked` с `lastSeenAt`;
   - без лайка или со свежим `check_ok_at` → `null`.
-- [ ] T023 [P] [US3] Новый сквозной тест `tests/e2e/card-check.e2e.mjs`, quickstart.md §2, строки 10–15. Стенд:
+- [X] T023 [P] [US3] Новый сквозной тест `tests/e2e/card-check.e2e.mjs`, quickstart.md §2, строки 10–15. Стенд:
   `h.sites` для `realt.by`, страница объявления по `listings.url`.
   - **Страница на месте.** Лайк на доме realt; сутки дома нет в выдаче; страница 200 → одна проверка, `check_ok_at`;
     к `realt.by` ≤ 1 запроса в минуту.
@@ -249,16 +249,16 @@ description: "Задачи реализации: понравившиеся, «�
 
 ### Implementation for User Story 3
 
-- [ ] T024 [P] [US3] `src/sources/realt.js` — `cardRequest`, `cardSample`, `parseCard` по contracts/source-adapter.md
+- [X] T024 [P] [US3] `src/sources/realt.js` — `cardRequest`, `cardSample`, `parseCard` по contracts/source-adapter.md
   003. Разбор — `readNextData` → `pageProps.object`, цена и площади — функциями выдачи (`readPrice`, `positive`);
   `archive` истинно → `{ gone: true }`.
-- [ ] T025 [P] [US3] `src/sources/moyareklama.js` — `cardRequest` (как `detailRequest`), `cardSample`, `parseCard`:
+- [X] T025 [P] [US3] `src/sources/moyareklama.js` — `cardRequest` (как `detailRequest`), `cardSample`, `parseCard`:
   цена — `<div class="price">` через `parsePrice`, площади — `<title>` через `parseTitle`; контакты не читаются.
-- [ ] T026 [US3] `src/db/listings.js`:
+- [X] T026 [US3] `src/db/listings.js`:
   - `dueCardStatement(db, source, now)` — запрос data-model.md listings, «Кого проверять»;
   - `cardResultStatement(db, id, fields)`;
   - `existingStatement` — плюс `gone_at`.
-- [ ] T027 [US3] `src/jobs/poll-feeds.js` — работа `card` по research.md R7 и contracts/source-adapter.md 003 «Ошибки
+- [X] T027 [US3] `src/jobs/poll-feeds.js` — работа `card` по research.md R7 и contracts/source-adapter.md 003 «Ошибки
   проверки страницы».
   - **Когда.** У адаптера есть `cardRequest`; `src.state` не `blocked`/`disallowed`; `cards_next_at ≤ now`
     (data-model.md `sources.cards_next_at`); нет работы `detail` → `dueCardStatement`.
@@ -270,16 +270,16 @@ description: "Задачи реализации: понравившиеся, «�
     - На месте — цена и площади через `normalizeListing` полей карточки.
     - `cards_next_at = now + CARD_GAP_MS`.
   - **`urlsToCheck`** — плюс `cardSample`.
-- [ ] T028 [US3] `src/jobs/ingest.js` `changedFields`: `old.gone_at !== null` → `gone_at = null` (data-model.md
+- [X] T028 [US3] `src/jobs/ingest.js` `changedFields`: `old.gone_at !== null` → `gone_at = null` (data-model.md
   `listings.gone_at`, US3-3).
-- [ ] T029 [US3] `src/match/format.js` `listingCard`: `siteStatus` по data-model.md listings, «Пометка на карточке» —
+- [X] T029 [US3] `src/match/format.js` `listingCard`: `siteStatus` по data-model.md listings, «Пометка на карточке» —
   нужны `mark` и `now`. `src/http/api.js` передаёт `now` во всех списках.
-- [ ] T030 [US3] `src/app/app.js.txt`, по contracts/miniapp-api.md 003 «Пометки»:
+- [X] T030 [US3] `src/app/app.js.txt`, по contracts/miniapp-api.md 003 «Пометки»:
   - `gone` — `ds-chip ds-chip--warning` «Снято с сайта dd.mm», дата по Минску;
   - `unchecked` — `ds-hint` «Не удалось проверить; в выдаче сайта последний раз dd.mm».
-- [ ] T031 [US3] `scripts/bench.mjs`: случаи `parseCard` — `realt/card.html` (`cost` 2) и `moyareklama/card.html`
+- [X] T031 [US3] `scripts/bench.mjs`: случаи `parseCard` — `realt/card.html` (`cost` 2) и `moyareklama/card.html`
   (`cost` 1); `npm run bench` — медиана ≤ `cost`.
-- [ ] T032 [US3] `npm test`, `npm run test:e2e`, `npm run bench` — зелёные.
+- [X] T032 [US3] `npm test`, `npm run test:e2e`, `npm run bench` — зелёные.
 
 **Checkpoint**: понравившиеся проверяются по страницам, пометки видны — US3 проверяется сама по себе
 
@@ -294,7 +294,7 @@ description: "Задачи реализации: понравившиеся, «�
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T033 [P] [US4] Новый `tests/unit/price-change.test.mjs` — `priceChange(old, next)` по research.md R9, случаи
+- [X] T033 [P] [US4] Новый `tests/unit/price-change.test.mjs` — `priceChange(old, next)` по research.md R9, случаи
   quickstart.md §1 «Изменение цены»:
   - граница 1 % — 0,99 % нет, 1 % да;
   - валюты `USD`, `BYN`, `EUR`;
@@ -304,19 +304,19 @@ description: "Задачи реализации: понравившиеся, «�
   - продавец сменил валюту — сравнение по долларам и рублям.
 
   Результат — `{ currency, oldPrice, newPrice } | null`.
-- [ ] T034 [P] [US4] Валюта продавца в тестах адаптеров и нормализации:
+- [X] T034 [P] [US4] Валюта продавца в тестах адаптеров и нормализации:
   - `tests/sources/{kufar,realt,domovita,moyareklama}.test.mjs` — `priceCurrency` у каждого объявления сохранённых
     страниц по таблице contracts/source-adapter.md 003 (kufar `EUR` → `null`);
   - `tests/unit/normalize.test.mjs` — `price_amount`/`price_currency` (data-model.md `listings.price_amount`,
     `listings.price_currency`), без валюты — оба `null`.
-- [ ] T035 [P] [US4] `tests/unit/format.test.mjs` — `priceAlertMessage` по contracts/telegram-bot.md 003 «Сообщение
+- [X] T035 [P] [US4] `tests/unit/format.test.mjs` — `priceAlertMessage` по contracts/telegram-bot.md 003 «Сообщение
   об изменении цены»:
   - первая строка с `<b>` и разницей «−4 000 $» (U+2212), «+» при росте;
   - `BYN` и `€`;
   - вторая строка без `<b>`;
   - последняя — «realt.by · в понравившихся»;
   - клавиатура «лайк».
-- [ ] T036 [P] [US4] Новый сквозной тест `tests/e2e/price-alerts.e2e.mjs`, quickstart.md §2, строки 16–20.
+- [X] T036 [P] [US4] Новый сквозной тест `tests/e2e/price-alerts.e2e.mjs`, quickstart.md §2, строки 16–20.
   - **Цена в выдаче** 52 000 → 48 000 $ у дома kufar с `currency: 'USD'`, лайк у `OWNER` и `MEMBER` → каждому одно
     сообщение с кнопками; тот же круг повторно — новых нет.
   - **Курс.** Цена в $, рубли −2 % → сообщений нет.
@@ -327,9 +327,9 @@ description: "Задачи реализации: понравившиеся, «�
 
 ### Implementation for User Story 4
 
-- [ ] T037 [P] [US4] `src/match/price-change.js` — `priceChange(old, next)` по research.md R9 с `PRICE_CHANGE_MIN`.
+- [X] T037 [P] [US4] `src/match/price-change.js` — `priceChange(old, next)` по research.md R9 с `PRICE_CHANGE_MIN`.
   `old` и `next` — поля `price_amount`, `price_currency`, `price_usd`, `price_byn`.
-- [ ] T038 [P] [US4] Адаптеры — `priceCurrency` по contracts/source-adapter.md 003 «RawListing: валюта продавца»:
+- [X] T038 [P] [US4] Адаптеры — `priceCurrency` по contracts/source-adapter.md 003 «RawListing: валюта продавца»:
   - `src/sources/kufar.js` — `ad.currency`: `BYR` → `BYN` с суммой `price_byn`, `USD` → `USD`, прочее → `null`;
   - `src/sources/realt.js` — `readPrice`: валюта, если `price` и `priceCurrency` есть;
   - `src/sources/moyareklama.js` — `BYN`;
@@ -337,28 +337,28 @@ description: "Задачи реализации: понравившиеся, «�
 
   `src/sources/normalize.js` `normalizeListing` — `price_amount`, `price_currency` (data-model.md
   `listings.price_amount`, `listings.price_currency`; значение вне `CHECK` → `null`).
-- [ ] T039 [US4] `src/db/listings.js` — `price_amount`, `price_currency` в `LISTING_COLUMNS` и `existingStatement`.
+- [X] T039 [US4] `src/db/listings.js` — `price_amount`, `price_currency` в `LISTING_COLUMNS` и `existingStatement`.
   Новый `src/db/price-alerts.js`:
   - `insertForLikesStatement(db, listingId, change, now)` — `INSERT … SELECT … FROM marks WHERE kind = 'like' AND
     listing_id = ?` (data-model.md price_alerts, «Правила»);
   - `markStuckStatement`, `duePendingStatement` — с `LEFT JOIN marks` и `users`;
   - `claimStatement`, `resultStatement` — по образцу `src/db/notifications.js`.
-- [ ] T040 [US4] `src/jobs/ingest.js` `changedFields`:
+- [X] T040 [US4] `src/jobs/ingest.js` `changedFields`:
   - `price_amount`/`price_currency` обновляются вместе с ценой;
   - `priceChange(old, merged)` → `insertForLikesStatement` в тот же `writes` (research.md R10).
-- [ ] T041 [US4] `src/jobs/poll-feeds.js` `doCard`: при новой цене — `priceChange` и `insertForLikesStatement` в тех
+- [X] T041 [US4] `src/jobs/poll-feeds.js` `doCard`: при новой цене — `priceChange` и `insertForLikesStatement` в тех
   же `statements`, что запись объявления.
-- [ ] T042 [US4] `src/match/format.js` — `priceAlertMessage(row, change)` по contracts/telegram-bot.md 003.
+- [X] T042 [US4] `src/match/format.js` — `priceAlertMessage(row, change)` по contracts/telegram-bot.md 003.
   - Вторая строка — общая с `notificationMessage`: вынести первую строку уведомления в функцию, цена — с `<b>` или без.
   - Превью — как у уведомления.
-- [ ] T043 [US4] `src/jobs/deliver.js` — вторая очередь после уведомлений, из оставшейся доли `allowance`:
+- [X] T043 [US4] `src/jobs/deliver.js` — вторая очередь после уведомлений, из оставшейся доли `allowance`:
   - `price_alerts`: `markStuck`, `due`, `claim`;
   - отметка не `like` → `cancelled`; пользователь без доступа → `undeliverable`;
   - остальное — общая обработка ответа Telegram (вынести из цикла уведомлений в функцию: `sent`, 429, 403, 400,
     повторы; data-model.md `price_alerts.status`, «Переходы»).
-- [ ] T044 [US4] `src/jobs/daily.js` `cleanupStep` — `DELETE FROM price_alerts WHERE created_at < now -
+- [X] T044 [US4] `src/jobs/daily.js` `cleanupStep` — `DELETE FROM price_alerts WHERE created_at < now -
   PRICE_ALERT_TTL_MS`.
-- [ ] T045 [US4] `npm test` и `npm run test:e2e` — зелёные.
+- [X] T045 [US4] `npm test` и `npm run test:e2e` — зелёные.
 
 **Checkpoint**: изменение цены понравившегося приходит одним сообщением, курс не даёт ложных — US4 проверяется сама
 по себе
@@ -369,20 +369,20 @@ description: "Задачи реализации: понравившиеся, «�
 
 **Purpose**: лимиты, документация, проверка и выкат
 
-- [ ] T046 [P] `tests/e2e/budget.e2e.mjs` — сутки тиков, 30 понравившихся realt и moyareklama без выдачи (SC-007,
+- [X] T046 [P] `tests/e2e/budget.e2e.mjs` — сутки тиков, 30 понравившихся realt и moyareklama без выдачи (SC-007,
   quickstart.md §2, последняя строка):
   - подзапросов на тик ≤ 45, к сайту ≤ 1 запроса в минуту;
   - страница каждого понравившегося — не больше раза в сутки, страницы — не чаще раза в 3 мин на сайт;
   - круги лент по-прежнему проходят.
-- [ ] T047 [P] `README.md`, раздел «Как пользоваться»:
+- [X] T047 [P] `README.md`, раздел «Как пользоваться»:
   - понравившиеся — кнопки, экран, кнопка меню, лимит 100;
   - «Не интересно» и «Скрытые»;
   - пометки «снято» и «не удалось проверить», какие сайты проверяются;
   - сообщения об изменении цены;
   - миграция 0004 в шагах выката (Конституция, «Процесс разработки»).
-- [ ] T048 [P] Документы 001: в `specs/001-house-listing-alerts/data-model.md` к `listings` (очистка) и
+- [X] T048 [P] Документы 001: в `specs/001-house-listing-alerts/data-model.md` к `listings` (очистка) и
   `notifications` (скрытые → `failed`) — ссылки на data-model.md 003, как сделано для 002.
-- [ ] T049 `npm test`, `npm run test:e2e`, `npm run bench` — зелёные. `CLAUDE.md`, таблица «Фичи»: строка 003 —
+- [X] T049 `npm test`, `npm run test:e2e`, `npm run bench` — зелёные. `CLAUDE.md`, таблица «Фичи»: строка 003 —
   реализация готова.
 - [ ] T050 Выкат по команде владельца «реализуй, деплой» (2026-11-23) — quickstart.md §4:
   1. слияние `003-listing-likes` в `main`;

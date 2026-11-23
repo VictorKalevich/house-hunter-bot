@@ -48,6 +48,15 @@ export const NOTIFICATION_TTL_MS = 365 * DAY;
 
 export const INIT_DATA_MAX_AGE_S = 24 * 3600;
 
+// Понравившиеся, страницы объявлений и цена (specs/003-listing-likes/research.md R2, R7–R10).
+export const LIKES_MAX = 100;
+export const CARD_CHECK_MS = DAY;
+export const CARD_GAP_MS = 3 * MINUTE;
+export const CARD_IDLE_MS = HOUR;
+export const UNCHECKED_AFTER_MS = 7 * DAY;
+export const PRICE_CHANGE_MIN = 0.01;
+export const PRICE_ALERT_TTL_MS = 365 * DAY;
+
 export const LIST_PAGE_SIZE = 5;
 export const LIST_MAX_ROWS = 3000;
 export const MAX_KM = 300;
