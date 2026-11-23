@@ -80,10 +80,10 @@ Cloudflare Worker (бесплатный тариф) + D1 + Cron Triggers. Язы
 |---|---|---|
 | `001-house-listing-alerts` | `specs/001-house-listing-alerts/` | реализация готова: T001–T087, `npm test`, `test:e2e`, `bench` зелёные; влита в `main` 2026-11-22 вместе с 002; идёт T088: 2026-11-23 выкачена из `main` (миграция 0002, секреты, webhook) на `https://house-hunter-bot.cycle-push.workers.dev`, бот `@HouseHunterRBBot` отвечает, три сайта работают, domovita отвечает Cloudflare 423 — исправлено (`.specify/bugs/domovita-423-blocked/`), CPU тика выше оценки плана при `exceededCpu` 0 — наблюдать; осталась проверка в Telegram вместе с владельцем — `quickstart.md` §6 и 002 §5; где остановились — `quickstart.md` §7 |
 | `002-search-ux-improvements` | `specs/002-search-ux-improvements/` | реализация готова: T001–T048 (тип объекта, итог поиска, ловушки формы, новое/поднятое, сайты в поиске и копия, состояние сайтов для всех), `npm test` (195), `test:e2e` (60), `bench` зелёные; влита в `main` 2026-11-22, выкачена 2026-11-23 вместе с 001 (`0002_kinds.sql` применена); проверка в Telegram — `quickstart.md` §5 в рамках T088 |
-| `003-listing-likes` | `specs/003-listing-likes/` | спецификация готова: понравившиеся, «Не интересно», суточная проверка страниц понравившихся (снято, цена), сообщение об изменении цены; решения владельца 2026-11-23 — в spec.md; выкат — по команде владельца «реализуй, деплой»; дальше — `/speckit-plan` (с поправкой конституции к принципу I и «Безопасность и данные») |
+| `003-listing-likes` | `specs/003-listing-likes/` | план готов: `marks` (лайк/скрыто), `price_alerts`, цена в валюте продавца, проверка страниц понравившихся у realt и moyareklama (kufar, domovita — нет, research.md R6), кнопки `lk`/`ul`/`hd`/`uh` под сообщениями, экраны `#/liked`, `#/hidden`; выкат — по команде владельца «реализуй, деплой»; дальше — поправка конституции 1.3.0 (`/speckit-constitution`), затем `/speckit-tasks` |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/002-search-ux-improvements/plan.md
+at specs/003-listing-likes/plan.md
 <!-- SPECKIT END -->
